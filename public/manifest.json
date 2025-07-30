@@ -27,22 +27,20 @@
       "src": "/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ],
   "screenshots": [
     {
-      "src": "/screenshot-desktop.png",
-      "sizes": "1280x720",
+      "src": "/og-image.png",
+      "sizes": "1200x630",
       "type": "image/png",
       "form_factor": "wide",
       "label": "EvalPrompts Desktop Interface"
-    },
-    {
-      "src": "/screenshot-mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "EvalPrompts Mobile Interface"
     }
   ]
 }

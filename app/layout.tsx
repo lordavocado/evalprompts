@@ -42,16 +42,16 @@ export const metadata: Metadata = {
       "Transform your creative ideas into high-performing AI image generation prompts. Get AI-powered evaluation, custom criteria generation, and iterative optimization for better results.",
     images: [
       {
-        url: "/og-image.png",
+        url: "https://evalprompts.vercel.app/og-image.png",
         width: 1200,
         height: 630,
         alt: "EvalPrompts - AI Prompt Evaluation Platform",
         type: "image/png",
       },
       {
-        url: "/og-image-square.png",
+        url: "https://evalprompts.vercel.app/twitter-image.png",
         width: 1200,
-        height: 1200,
+        height: 600,
         alt: "EvalPrompts - AI Prompt Evaluation Platform",
         type: "image/png",
       },
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
     title: "EvalPrompts - AI Prompt Evaluation & Optimization Platform",
     description:
       "Transform your creative ideas into high-performing AI image generation prompts. Get AI-powered evaluation, custom criteria generation, and iterative optimization.",
-    images: ["/twitter-image.png"],
+    images: ["https://evalprompts.vercel.app/twitter-image.png"],
   },
 
   // Additional metadata
@@ -109,14 +109,18 @@ export const metadata: Metadata = {
   // Manifest
   manifest: "/manifest.json",
 
-  // Icons
+  // Icons - Updated with new favicon files
   icons: {
     icon: [
+      { url: "/favicon.png", type: "image/svg+xml" },
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
       { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
     ],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
-    other: [{ rel: "mask-icon", url: "/safari-pinned-tab.png", color: "#8b5cf6" }],
+    other: [
+      { rel: "mask-icon", url: "/favicon.png", color: "#8b5cf6" },
+      { rel: "shortcut icon", url: "/favicon.png" },
+    ],
   },
     generator: 'v0.dev'
 }
@@ -131,6 +135,8 @@ const jsonLd = {
   url: "https://evalprompts.vercel.app",
   applicationCategory: "AI Tools",
   operatingSystem: "Web Browser",
+  image: "https://evalprompts.vercel.app/og-image.png",
+  screenshot: "https://evalprompts.vercel.app/og-image.png",
   offers: {
     "@type": "Offer",
     price: "0",
@@ -150,7 +156,6 @@ const jsonLd = {
     "Real-time image generation",
     "Detailed performance analytics",
   ],
-  screenshot: "https://evalprompts.vercel.app/og-image.png",
 }
 
 export default function RootLayout({
@@ -171,6 +176,13 @@ export default function RootLayout({
         <meta name="revisit-after" content="7 days" />
         <meta name="distribution" content="global" />
         <meta name="rating" content="general" />
+
+        {/* Favicon links */}
+        <link rel="icon" href="/favicon.png" type="image/svg+xml" />
+        <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png" />
+        <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="mask-icon" href="/favicon.png" color="#8b5cf6" />
 
         {/* Preconnect to external domains for performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />

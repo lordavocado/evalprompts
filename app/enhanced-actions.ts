@@ -40,6 +40,7 @@ export async function generateImages(
   prompts: string[],
   model: FluxModel,
   apiKeys: { openaiKey?: string; falKey?: string },
+  onTrackUsage?: (modelId: string, imageCount: number) => void,
 ): Promise<string[]> {
   if (!apiKeys.falKey) {
     console.log("FAL_KEY not provided, using mock generation")
@@ -47,6 +48,7 @@ export async function generateImages(
   }
 
   const imageUrls: string[] = []
+  let successfulGenerations = 0
 
   try {
     const fal = await import("@fal-ai/serverless-client")
@@ -76,6 +78,7 @@ export async function generateImages(
 
         if (result && result.images && result.images.length > 0) {
           imageUrls.push(result.images[0].url)
+          successfulGenerations++
           console.log(`Successfully generated image with ${model.name}`)
         } else {
           console.log("No images in result, using placeholder")
@@ -85,6 +88,11 @@ export async function generateImages(
         console.error("Error generating individual image:", error)
         imageUrls.push(`/placeholder.svg?height=400&width=400&query=${encodeURIComponent(prompt)}`)
       }
+    }
+
+    // Track successful generations
+    if (onTrackUsage && successfulGenerations > 0) {
+      onTrackUsage(model.endpoint, successfulGenerations)
     }
   } catch (importError) {
     console.error("Error importing Fal AI module:", importError)
@@ -125,7 +133,7 @@ async function mockEvaluatePrompts(prompts: PromptData[], criteria: EvaluationCr
       ...prompt,
       scores: mockScores,
       feedback: mockFeedback,
-      suggestions: [], // Removed generic suggestions
+      suggestions: [],
     }
   })
 
@@ -133,14 +141,14 @@ async function mockEvaluatePrompts(prompts: PromptData[], criteria: EvaluationCr
     (current.scores?.overall || 0) > (best.scores?.overall || 0) ? current : best,
   )
 
-  const comparison = `Based on your custom ${criteria.name.toLowerCase()} evaluation criteria, the prompts show varying levels of effectiveness. ${bestPrompt.text.slice(0, 50)}... performed best with a score of ${bestPrompt.scores?.overall}/10.`
+  const comparison = `Based on your ${criteria.name.toLowerCase()} criteria, Prompt ${bestPrompt.id} performed best with ${bestPrompt.scores?.overall}/10. The prompts show varying effectiveness across your custom evaluation framework.`
 
   const recommendations = [
-    `Focus on ${Object.values(criteria.criteria)[0].name.toLowerCase()} as defined in your criteria`,
-    `Enhance ${Object.values(criteria.criteria)[1].name.toLowerCase()} based on your success definition`,
-    `Consider your favorite images' patterns when refining prompts`,
+    `Enhance ${Object.values(criteria.criteria)[0].name.toLowerCase()} by adding more specific details`,
+    `Improve ${Object.values(criteria.criteria)[1].name.toLowerCase()} based on your success definition`,
+    `Consider patterns from your favorite images when refining prompts`,
     `Balance all criteria according to your custom weightings`,
-    `Iterate based on your specific evaluation framework`,
+    `Add technical specifications that align with your evaluation framework`,
   ]
 
   return {
@@ -157,6 +165,7 @@ export async function evaluatePromptsWithCriteria(
   criteria: EvaluationCriteria,
   favorites: FavoriteImage[],
   apiKeys: { openaiKey?: string; falKey?: string },
+  onTrackUsage?: (model: string, estimatedTokens: number) => void,
 ) {
   if (!apiKeys.openaiKey) {
     console.log("OpenAI API key not provided, using mock evaluation")
@@ -181,33 +190,34 @@ export async function evaluatePromptsWithCriteria(
       return mockEvaluatePrompts(prompts, criteria, favorites)
     }
 
+    // Track usage for test call
+    if (onTrackUsage) {
+      onTrackUsage("gpt-4o-mini", 10)
+    }
+
     // Analyze favorites for pattern recognition
     let favoriteAnalysis = ""
     if (favorites.length > 0) {
       const { text: analysis } = await generateText({
         model,
-        prompt: `Analyze these favorite images to understand user preferences:
+        prompt: `Analyze these favorite images briefly to understand user preferences:
 
 ${favorites
   .map(
     (fav, i) => `
-Favorite ${i + 1}:
-Prompt: "${fav.prompt}"
-Image URL: ${fav.imageUrl}
-Score: ${fav.scores?.overall || "N/A"}/10
+Favorite ${i + 1}: "${fav.prompt}" (Score: ${fav.scores?.overall || "N/A"}/10)
 `,
   )
   .join("\n")}
 
-Identify patterns in:
-1. Visual style preferences
-2. Subject matter preferences  
-3. Composition preferences
-4. Quality indicators the user values
-
-Provide insights in 2-3 sentences that can guide future evaluations.`,
+Provide 2-3 sentences about visual patterns and preferences.`,
       })
       favoriteAnalysis = analysis
+
+      // Track usage for favorites analysis
+      if (onTrackUsage) {
+        onTrackUsage("gpt-4o-mini", 300)
+      }
     }
 
     // Evaluate each prompt individually using GPT-4o-mini with custom criteria
@@ -216,52 +226,39 @@ Provide insights in 2-3 sentences that can guide future evaluations.`,
         const criteriaDescriptions = Object.entries(criteria.criteria)
           .map(
             ([key, criterion]) =>
-              `${key} (${Math.round(criterion.weight * 100)}% weight): ${criterion.name} - ${criterion.description}`,
+              `${key}: ${criterion.name} (${Math.round(criterion.weight * 100)}% weight) - ${criterion.description}`,
           )
           .join("\n")
 
         try {
           const { text: evaluation } = await generateText({
             model,
-            prompt: `You are an expert AI image evaluation specialist. Analyze this prompt and generated image using the user's CUSTOM evaluation criteria.
+            prompt: `Evaluate this AI image prompt and generated image using these SPECIFIC custom criteria:
 
-PROMPT TO EVALUATE: "${prompt.text}"
-IMAGE URL: ${prompt.imageUrl}
+PROMPT: "${prompt.text}"
+IMAGE: ${prompt.imageUrl}
 
-CUSTOM EVALUATION CRITERIA:
+CUSTOM CRITERIA:
 ${criteriaDescriptions}
 
-${
-  favoriteAnalysis
-    ? `USER PREFERENCE INSIGHTS (from favorite images):
-${favoriteAnalysis}
+${favoriteAnalysis ? `USER PREFERENCES: ${favoriteAnalysis}` : ""}
 
-Consider these preferences when evaluating.`
-    : ""
-}
+Score each criterion 1-10 based on the EXACT definitions provided above. Focus on how well the image/prompt meets each specific success definition.
 
-TASK: Provide detailed evaluation based ONLY on the custom criteria provided above. Each criterion has a specific definition and weight.
-
-For IMAGE ANALYSIS (if available):
-- Examine how well the image meets each custom criterion
-- Reference specific visual elements that align with or miss the criteria definitions
-- Consider the user's demonstrated preferences from favorites
-
-For PROMPT ANALYSIS:
-- Evaluate how well the prompt would generate images meeting each criterion
-- Assess alignment with the custom success definitions provided
-
-Provide evaluation in ONLY a valid JSON object (no markdown, no code blocks, no extra text):
+Respond with ONLY valid JSON (no markdown):
 {
   ${Object.keys(criteria.criteria)
-    .map((name) => `"${name}": [score 1-10 based on the specific criterion definition]`)
+    .map((name) => `"${name}": [score 1-10]`)
     .join(",\n  ")},
-  "overall": [weighted average using the specified weights],
-  "feedback": "[detailed analysis referencing the specific custom criteria definitions and how the image/prompt performs against each one. Be specific about what you observe and how it relates to the user's success definitions.]"
-}
-
-Focus your analysis specifically on the custom criteria definitions provided. Do not use generic evaluation standards.`,
+  "overall": [weighted average],
+  "feedback": "[2-3 sentences explaining the scores based on the specific criteria definitions]"
+}`,
           })
+
+          // Track usage for individual evaluation
+          if (onTrackUsage) {
+            onTrackUsage("gpt-4o-mini", 800)
+          }
 
           // Clean the response to remove any markdown formatting
           const cleanEvaluation = evaluation.replace(/```json\s*|\s*```/g, "").trim()
@@ -283,7 +280,7 @@ Focus your analysis specifically on the custom criteria definitions provided. Do
             ...prompt,
             scores,
             feedback: parsed.feedback,
-            suggestions: [], // Removed generic suggestions
+            suggestions: [],
           }
         } catch (error: any) {
           console.error("Error evaluating individual prompt:", error?.message || error)
@@ -307,41 +304,22 @@ Focus your analysis specifically on the custom criteria definitions provided. Do
     try {
       const { text: comparison } = await generateText({
         model,
-        prompt: `Compare these AI image generation prompts using the custom evaluation criteria:
+        prompt: `Compare these prompts using the custom criteria. Keep it concise (3-4 sentences):
 
-CUSTOM CRITERIA:
-${Object.entries(criteria.criteria)
-  .map(([key, criterion]) => `${criterion.name} (${Math.round(criterion.weight * 100)}%): ${criterion.description}`)
-  .join("\n")}
+CRITERIA: ${Object.entries(criteria.criteria)
+          .map(([key, criterion]) => `${criterion.name} (${Math.round(criterion.weight * 100)}%)`)
+          .join(", ")}
 
-EVALUATION RESULTS:
-${evaluatedPrompts
-  .map(
-    (p, i) => `
-PROMPT ${i + 1}: "${p.text}"
-IMAGE: ${p.imageUrl}
-SCORES:
-${Object.entries(criteria.criteria)
-  .map(([key, criterion]) => `- ${criterion.name}: ${p.scores?.[key] || 0}/10`)
-  .join("\n")}
-Overall Score: ${p.scores?.overall?.toFixed(1) || 0}/10
+RESULTS:
+${evaluatedPrompts.map((p, i) => `Prompt ${i + 1}: ${p.scores?.overall?.toFixed(1) || 0}/10`).join(", ")}
 
-FEEDBACK: ${p.feedback}
-`,
-  )
-  .join("\n")}
-
-${favoriteAnalysis ? `USER PREFERENCES (from favorites): ${favoriteAnalysis}` : ""}
-
-Provide a comprehensive comparison specifically based on the custom criteria definitions. Analyze:
-
-1. **Performance Ranking**: Which prompt performed best according to the custom criteria?
-2. **Visual Analysis**: How do the generated images align with the specific success definitions?
-3. **Criteria-Specific Insights**: Performance differences across the custom evaluation framework
-4. **Pattern Recognition**: What patterns emerge relative to the user's defined success metrics?
-
-Write a detailed analysis that references the specific custom criteria and their definitions.`,
+Which performed best and why? Focus on the custom criteria performance.`,
       })
+
+      // Track usage for comparison
+      if (onTrackUsage) {
+        onTrackUsage("gpt-4o-mini", 400)
+      }
 
       // Identify best prompt
       const bestPrompt = evaluatedPrompts.reduce((best, current) =>
@@ -351,40 +329,32 @@ Write a detailed analysis that references the specific custom criteria and their
       // Generate actionable recommendations using GPT-4o-mini
       const { text: recommendationsText } = await generateText({
         model,
-        prompt: `Based on the custom evaluation criteria and results, provide 5 specific recommendations for improving prompt effectiveness:
+        prompt: `Based on the evaluation results, provide 5 specific, actionable recommendations to improve the prompts:
 
-CUSTOM CRITERIA DEFINITIONS:
+CRITERIA DEFINITIONS:
 ${Object.entries(criteria.criteria)
-  .map(([key, criterion]) => `${criterion.name} (${Math.round(criterion.weight * 100)}%): ${criterion.description}`)
+  .map(([key, criterion]) => `${criterion.name}: ${criterion.description}`)
   .join("\n")}
 
-EVALUATION RESULTS:
+CURRENT PERFORMANCE:
 ${evaluatedPrompts
-  .map(
-    (p, i) => `
-Prompt ${i + 1}: "${p.text}" (Score: ${p.scores?.overall?.toFixed(1) || 0}/10)
-Image: ${p.imageUrl}
-Performance: ${p.feedback}
-`,
-  )
+  .map((p, i) => `Prompt ${i + 1}: ${p.scores?.overall?.toFixed(1) || 0}/10 - ${p.feedback}`)
   .join("\n")}
 
-${favoriteAnalysis ? `USER PREFERENCES: ${favoriteAnalysis}` : ""}
+Provide 5 recommendations in this format:
+1. [Specific actionable improvement]
+2. [Specific actionable improvement]
+3. [Specific actionable improvement]
+4. [Specific actionable improvement]
+5. [Specific actionable improvement]
 
-Provide recommendations in this format:
-1. [Specific recommendation targeting the custom criteria definitions]
-2. [Specific recommendation targeting the custom criteria definitions]
-3. [Specific recommendation targeting the custom criteria definitions]
-4. [Specific recommendation targeting the custom criteria definitions]
-5. [Specific recommendation targeting the custom criteria definitions]
-
-Each recommendation should:
-- Be specific to the custom criteria definitions provided
-- Address observed gaps in meeting the success definitions
-- Consider the user's demonstrated preferences from favorites
-- Be actionable and concrete
-- Reference the specific criterion weights and definitions`,
+Each should be concrete and directly address the custom criteria definitions.`,
       })
+
+      // Track usage for recommendations
+      if (onTrackUsage) {
+        onTrackUsage("gpt-4o-mini", 600)
+      }
 
       const recommendations = recommendationsText
         .split("\n")
@@ -413,6 +383,7 @@ Each recommendation should:
 export async function analyzeFavoritePatterns(
   favorites: FavoriteImage[],
   apiKeys: { openaiKey?: string; falKey?: string },
+  onTrackUsage?: (model: string, estimatedTokens: number) => void,
 ): Promise<{
   analysis: string
   recommendations: string[]
@@ -433,40 +404,34 @@ export async function analyzeFavoritePatterns(
 
     const { text: analysisText } = await generateText({
       model,
-      prompt: `Analyze these favorite images to identify patterns in user preferences:
+      prompt: `Analyze these favorite images to identify patterns:
 
 ${favorites
-  .map(
-    (fav, i) => `
-Favorite ${i + 1}:
-Prompt: "${fav.prompt}"
-Image URL: ${fav.imageUrl}
-Overall Score: ${fav.scores?.overall || "N/A"}/10
-Timestamp: ${new Date(fav.timestamp).toLocaleDateString()}
-${fav.notes ? `Notes: ${fav.notes}` : ""}
-`,
-  )
+  .map((fav, i) => `Favorite ${i + 1}: "${fav.prompt}" (Score: ${fav.scores?.overall || "N/A"}/10)`)
   .join("\n")}
 
-Provide analysis in ONLY a valid JSON object (no markdown, no code blocks, no extra text):
+Respond with ONLY valid JSON (no markdown):
 {
-  "analysis": "Comprehensive analysis covering visual style patterns, subject matter preferences, composition preferences, quality indicators, and prompt engineering insights",
+  "analysis": "Brief analysis of visual patterns and preferences (2-3 sentences)",
   "recommendations": [
-    "Specific actionable recommendation 1",
-    "Specific actionable recommendation 2", 
-    "Specific actionable recommendation 3",
-    "Specific actionable recommendation 4",
-    "Specific actionable recommendation 5"
+    "Specific recommendation 1",
+    "Specific recommendation 2", 
+    "Specific recommendation 3",
+    "Specific recommendation 4",
+    "Specific recommendation 5"
   ],
   "styleInsights": [
-    "Key visual style insight 1",
-    "Key visual style insight 2",
-    "Key visual style insight 3"
+    "Key insight 1",
+    "Key insight 2",
+    "Key insight 3"
   ]
-}
-
-Focus on actionable insights that can improve future prompt generation and evaluation.`,
+}`,
     })
+
+    // Track usage for analysis
+    if (onTrackUsage) {
+      onTrackUsage("gpt-4o-mini", 600)
+    }
 
     // Clean the response to remove any markdown formatting
     const cleanAnalysisText = analysisText.replace(/```json\s*|\s*```/g, "").trim()
@@ -487,19 +452,20 @@ Focus on actionable insights that can improve future prompt generation and evalu
   }
 }
 
-// Apply AI recommendations to improve prompts
-export async function applyRecommendations(
+// Apply AI recommendations to improve prompts (this replaces both applyRecommendations and refinePromptsWithCriteria)
+export async function improvePrompts(
   prompts: PromptData[],
   recommendations: string[],
   criteria: EvaluationCriteria,
   favorites: FavoriteImage[],
   apiKeys: { openaiKey?: string; falKey?: string },
+  onTrackUsage?: (model: string, estimatedTokens: number) => void,
 ): Promise<PromptData[]> {
   if (!apiKeys.openaiKey) {
-    console.log("OpenAI API key not provided, using mock application")
+    console.log("OpenAI API key not provided, using mock improvement")
     return prompts.map((prompt) => ({
       ...prompt,
-      text: prompt.text + ", enhanced with AI recommendations",
+      text: prompt.text + ", enhanced with AI improvements",
       imageUrl: undefined,
       scores: undefined,
       feedback: undefined,
@@ -515,7 +481,7 @@ export async function applyRecommendations(
     // Get favorite patterns if available
     let favoriteInsights = ""
     if (favorites.length > 0) {
-      const patterns = await analyzeFavoritePatterns(favorites, apiKeys)
+      const patterns = await analyzeFavoritePatterns(favorites, apiKeys, onTrackUsage)
       favoriteInsights = patterns.analysis
     }
 
@@ -524,44 +490,39 @@ export async function applyRecommendations(
         try {
           const { text: improvedPrompt } = await generateText({
             model,
-            prompt: `You are an expert prompt engineer. Improve this AI image generation prompt based on custom evaluation criteria and user preferences.
+            prompt: `Improve this AI image prompt based on the specific evaluation criteria and recommendations:
 
 ORIGINAL PROMPT: "${prompt.text}"
 
-CUSTOM EVALUATION CRITERIA:
+EVALUATION CRITERIA:
 ${Object.entries(criteria.criteria)
-  .map(([key, criterion]) => `${criterion.name} (${Math.round(criterion.weight * 100)}%): ${criterion.description}`)
+  .map(([key, criterion]) => `${criterion.name}: ${criterion.description}`)
   .join("\n")}
 
-CURRENT PERFORMANCE:
+CURRENT SCORES:
 ${Object.entries(criteria.criteria)
-  .map(([key, criterion]) => `- ${criterion.name}: ${prompt.scores?.[key] || 0}/10`)
+  .map(([key, criterion]) => `${criterion.name}: ${prompt.scores?.[key] || 0}/10`)
   .join("\n")}
 Overall: ${prompt.scores?.overall?.toFixed(1) || 0}/10
 
-FEEDBACK: ${prompt.feedback}
-
-GENERAL RECOMMENDATIONS TO APPLY:
+IMPROVEMENT AREAS:
 ${recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}
 
-${
-  favoriteInsights
-    ? `USER PREFERENCE PATTERNS (from favorites):
-${favoriteInsights}`
-    : ""
-}
+${favoriteInsights ? `USER PREFERENCES: ${favoriteInsights}` : ""}
 
-TASK: Create an improved version that:
-1. Addresses the specific custom criteria definitions
-2. Incorporates the general recommendations
-3. Maintains the core creative intent
-4. Aligns with user preferences from favorite images
-5. Optimizes for the weighted success metrics
-
-IMPORTANT: Focus specifically on the custom criteria definitions provided, not generic quality metrics.
+Create an improved version that:
+1. Addresses the specific criteria definitions
+2. Incorporates the improvement recommendations
+3. Maintains the core creative concept
+4. Aligns with user preferences
 
 Return ONLY the improved prompt text, nothing else.`,
           })
+
+          // Track usage for improvement
+          if (onTrackUsage) {
+            onTrackUsage("gpt-4o-mini", 500)
+          }
 
           return {
             ...prompt,
@@ -572,7 +533,7 @@ Return ONLY the improved prompt text, nothing else.`,
             suggestions: undefined,
           }
         } catch (error: any) {
-          console.error("Error applying recommendations to prompt:", error?.message || error)
+          console.error("Error improving prompt:", error?.message || error)
           return {
             ...prompt,
             imageUrl: undefined,
@@ -586,10 +547,10 @@ Return ONLY the improved prompt text, nothing else.`,
 
     return improvedPrompts
   } catch (error: any) {
-    console.error("Error applying recommendations:", error?.message || error)
+    console.error("Error improving prompts:", error?.message || error)
     return prompts.map((prompt) => ({
       ...prompt,
-      text: prompt.text + ", enhanced with AI recommendations",
+      text: prompt.text + ", enhanced with AI improvements",
       imageUrl: undefined,
       scores: undefined,
       feedback: undefined,
@@ -598,111 +559,6 @@ Return ONLY the improved prompt text, nothing else.`,
   }
 }
 
-// Mock refinement function
-async function mockRefinePrompts(prompts: PromptData[], criteria: EvaluationCriteria): Promise<PromptData[]> {
-  console.log("Using mock prompt refinement")
-  await new Promise((resolve) => setTimeout(resolve, 2000))
-
-  return prompts.map((prompt) => {
-    const refinedText = prompt.text + ", enhanced based on custom criteria"
-    return {
-      ...prompt,
-      text: refinedText,
-      imageUrl: undefined,
-      scores: undefined,
-      feedback: undefined,
-      suggestions: undefined,
-    }
-  })
-}
-
-export async function refinePromptsWithCriteria(
-  prompts: PromptData[],
-  criteria: EvaluationCriteria,
-  favorites: FavoriteImage[],
-  apiKeys: { openaiKey?: string; falKey?: string },
-): Promise<PromptData[]> {
-  if (!apiKeys.openaiKey) {
-    console.log("OpenAI API key not provided, using mock refinement")
-    return mockRefinePrompts(prompts, criteria)
-  }
-
-  try {
-    const model = openai("gpt-4o-mini", {
-      apiKey: apiKeys.openaiKey,
-    })
-
-    // Get favorite patterns if available
-    let favoriteInsights = ""
-    if (favorites.length > 0) {
-      const patterns = await analyzeFavoritePatterns(favorites, apiKeys)
-      favoriteInsights = patterns.analysis
-    }
-
-    const refinedPrompts = await Promise.all(
-      prompts.map(async (prompt) => {
-        try {
-          const { text: refinedPrompt } = await generateText({
-            model,
-            prompt: `You are an expert prompt engineer. Refine this AI image generation prompt based on custom evaluation criteria and user feedback.
-
-Original Prompt: "${prompt.text}"
-
-CUSTOM EVALUATION CRITERIA:
-${Object.entries(criteria.criteria)
-  .map(([key, criterion]) => `${criterion.name} (${Math.round(criterion.weight * 100)}%): ${criterion.description}`)
-  .join("\n")}
-
-Current Performance:
-${Object.entries(criteria.criteria)
-  .map(([key, criterion]) => `- ${criterion.name}: ${prompt.scores?.[key] || 0}/10`)
-  .join("\n")}
-Overall Score: ${prompt.scores?.overall?.toFixed(1) || 0}/10
-
-Feedback: ${prompt.feedback}
-
-${
-  favoriteInsights
-    ? `USER PREFERENCE PATTERNS:
-${favoriteInsights}`
-    : ""
-}
-
-Create an improved version that addresses the custom criteria definitions while maintaining the core concept. Focus specifically on:
-
-${Object.entries(criteria.criteria)
-  .map(([key, criterion]) => `- Improving ${criterion.name}: ${criterion.description}`)
-  .join("\n")}
-
-Consider the user's demonstrated preferences from their favorite images when refining.
-
-Return ONLY the refined prompt text, nothing else. Make it specifically optimized for the custom success definitions provided.`,
-          })
-
-          return {
-            ...prompt,
-            text: refinedPrompt.trim(),
-            imageUrl: undefined,
-            scores: undefined,
-            feedback: undefined,
-            suggestions: undefined,
-          }
-        } catch (error: any) {
-          console.error("Error refining individual prompt:", error?.message || error)
-          return {
-            ...prompt,
-            imageUrl: undefined,
-            scores: undefined,
-            feedback: undefined,
-            suggestions: undefined,
-          }
-        }
-      }),
-    )
-
-    return refinedPrompts
-  } catch (error: any) {
-    console.error("Error with OpenAI refinement:", error?.message || error)
-    return mockRefinePrompts(prompts, criteria)
-  }
-}
+// Legacy functions for backward compatibility
+export const applyRecommendations = improvePrompts
+export const refinePromptsWithCriteria = improvePrompts

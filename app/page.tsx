@@ -5,24 +5,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Sparkles, TrendingUp, Eye, Target, Settings, ArrowLeft, Zap, Heart } from "lucide-react"
+import { Loader2, Sparkles, TrendingUp, Eye, Settings, ArrowLeft, Heart, BarChart3 } from "lucide-react"
 import { ApiKeySetup } from "@/components/api-key-setup"
 import { ImageDescriptionChat } from "@/components/image-description-chat"
 import { useSecureStorage } from "@/hooks/use-secure-storage"
+import { useUsageTracking } from "@/hooks/use-usage-tracking"
 import { generateCustomContent } from "./ai-actions"
 import {
   generateImages,
   evaluatePromptsWithCriteria,
-  refinePromptsWithCriteria,
-  applyRecommendations,
+  improvePrompts,
   analyzeFavoritePatterns,
 } from "./enhanced-actions"
 import type { EvaluationCriteria } from "@/types/evaluation-criteria"
 import { ProductExplainer } from "@/components/product-explainer"
 import { SEOHead } from "@/components/seo-head"
 import { FluxModelSelector } from "@/components/flux-model-selector"
-import { CriteriaCustomizer } from "@/components/criteria-customizer"
+import { InlineCriteriaEditor } from "@/components/inline-criteria-editor"
 import { ImageFavorites } from "@/components/image-favorites"
+import { ImageDownloadButton } from "@/components/image-download-button"
+import { UsageStatsWidget } from "@/components/usage-stats-widget"
+import { UsageStatsModal } from "@/components/usage-stats-modal"
+import { EvaluationResultsSection } from "@/components/evaluation-results-section"
 import { FLUX_MODELS, getModelRecommendations, type FluxModel } from "@/types/flux-models"
 
 interface PromptData {
@@ -56,17 +60,18 @@ interface FavoriteImage {
 
 export default function PromptEvaluator() {
   const { apiKeys, saveApiKeys } = useSecureStorage()
+  const { stats, trackFalRequest, trackOpenAIRequest, resetStats, getRecentRequests } = useUsageTracking()
   const [currentStep, setCurrentStep] = useState<AppStep>("api-setup")
   const [userDescription, setUserDescription] = useState("")
   const [customCriteria, setCustomCriteria] = useState<EvaluationCriteria | null>(null)
   const [isGeneratingContent, setIsGeneratingContent] = useState(false)
   const [showExplainer, setShowExplainer] = useState(true)
+  const [showUsageModal, setShowUsageModal] = useState(false)
 
   const [prompts, setPrompts] = useState<PromptData[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [isEvaluating, setIsEvaluating] = useState(false)
-  const [isRefining, setIsRefining] = useState(false)
-  const [isApplyingRecommendations, setIsApplyingRecommendations] = useState(false)
+  const [isImproving, setIsImproving] = useState(false)
   const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null)
   const [currentIteration, setCurrentIteration] = useState(1)
 
@@ -147,6 +152,7 @@ export default function PromptEvaluator() {
         prompts.map((p) => p.text),
         selectedFluxModel,
         apiKeys,
+        trackFalRequest,
       )
 
       setPrompts((prev) =>
@@ -178,7 +184,7 @@ export default function PromptEvaluator() {
 
     setIsEvaluating(true)
     try {
-      const result = await evaluatePromptsWithCriteria(prompts, customCriteria, favorites, apiKeys)
+      const result = await evaluatePromptsWithCriteria(prompts, customCriteria, favorites, apiKeys, trackOpenAIRequest)
       setEvaluationResult(result)
       setPrompts(result.prompts)
     } catch (error) {
@@ -218,7 +224,7 @@ export default function PromptEvaluator() {
     if (favorites.length < 2) {
       throw new Error("Need at least 2 favorite images to analyze patterns.")
     }
-    return await analyzeFavoritePatterns(favorites, apiKeys)
+    return await analyzeFavoritePatterns(favorites, apiKeys, trackOpenAIRequest)
   }
 
   const applyFavoriteInsights = async (insights: {
@@ -228,14 +234,15 @@ export default function PromptEvaluator() {
   }) => {
     if (!customCriteria) return
 
-    setIsApplyingRecommendations(true)
+    setIsImproving(true)
     try {
-      const improvedPrompts = await applyRecommendations(
+      const improvedPrompts = await improvePrompts(
         prompts,
         insights.recommendations,
         customCriteria,
         favorites,
         apiKeys,
+        trackOpenAIRequest,
       )
       const newIteration = currentIteration + 1
       setPrompts(
@@ -247,24 +254,25 @@ export default function PromptEvaluator() {
       console.error("Error applying favorite insights:", error)
       alert(`Error applying insights: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
-      setIsApplyingRecommendations(false)
+      setIsImproving(false)
     }
   }
 
-  const handleApplyRecommendations = async () => {
+  const handleImprovePrompts = async () => {
     if (!evaluationResult || !customCriteria) {
       alert("Please evaluate prompts first")
       return
     }
 
-    setIsApplyingRecommendations(true)
+    setIsImproving(true)
     try {
-      const improvedPrompts = await applyRecommendations(
+      const improvedPrompts = await improvePrompts(
         prompts,
         evaluationResult.recommendations,
         customCriteria,
         favorites,
         apiKeys,
+        trackOpenAIRequest,
       )
       const newIteration = currentIteration + 1
       setPrompts(
@@ -273,31 +281,10 @@ export default function PromptEvaluator() {
       setCurrentIteration(newIteration)
       setEvaluationResult(null)
     } catch (error) {
-      console.error("Error applying recommendations:", error)
-      alert(`Error applying recommendations: ${error instanceof Error ? error.message : String(error)}`)
+      console.error("Error improving prompts:", error)
+      alert(`Error improving prompts: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
-      setIsApplyingRecommendations(false)
-    }
-  }
-
-  const handleRefinePrompts = async () => {
-    if (!evaluationResult || !customCriteria) {
-      alert("Please evaluate prompts first")
-      return
-    }
-
-    setIsRefining(true)
-    try {
-      const refinedPrompts = await refinePromptsWithCriteria(prompts, customCriteria, favorites, apiKeys)
-      const newIteration = currentIteration + 1
-      setPrompts(refinedPrompts.map((p) => ({ ...p, iteration: newIteration, imageUrl: undefined, scores: undefined })))
-      setCurrentIteration(newIteration)
-      setEvaluationResult(null)
-    } catch (error) {
-      console.error("Error refining prompts:", error)
-      alert(`Error refining prompts: ${error instanceof Error ? error.message : String(error)}`)
-    } finally {
-      setIsRefining(false)
+      setIsImproving(false)
     }
   }
 
@@ -399,6 +386,14 @@ export default function PromptEvaluator() {
                 <Settings className="w-4 h-4" />
                 API Settings
               </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowUsageModal(true)}
+                className="flex items-center gap-2 bg-transparent"
+              >
+                <BarChart3 className="w-4 h-4" />
+                Usage Stats
+              </Button>
             </div>
 
             <h1 className="text-4xl font-bold text-gray-900 mb-4">EvalPrompts</h1>
@@ -418,31 +413,11 @@ export default function PromptEvaluator() {
             </div>
           </div>
 
-          {/* Custom Criteria Display */}
-          {customCriteria && (
-            <Card className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="text-2xl">{customCriteria.icon}</span>
-                  {customCriteria.name}
-                  <Badge variant="secondary">AI Generated</Badge>
-                </CardTitle>
-                <CardDescription>{customCriteria.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(customCriteria.criteria).map(([key, criterion]) => (
-                    <div key={key} className="text-center">
-                      <div className="font-medium text-sm">{criterion.name}</div>
-                      <Badge variant="outline" className="text-xs mt-1">
-                        {Math.round(criterion.weight * 100)}%
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Usage Stats Widget */}
+          <UsageStatsWidget stats={stats} onOpenModal={() => setShowUsageModal(true)} />
+
+          {/* Inline Criteria Editor */}
+          {customCriteria && <InlineCriteriaEditor criteria={customCriteria} onUpdate={setCustomCriteria} />}
 
           {/* Flux Model Selector */}
           {customCriteria && (
@@ -452,9 +427,6 @@ export default function PromptEvaluator() {
               recommendedModels={recommendedModels}
             />
           )}
-
-          {/* Criteria Customizer */}
-          {customCriteria && <CriteriaCustomizer criteria={customCriteria} onUpdate={setCustomCriteria} />}
 
           {/* Image Favorites */}
           <ImageFavorites
@@ -494,7 +466,11 @@ export default function PromptEvaluator() {
                         alt={`Generated from: ${prompt.text}`}
                         className="w-full h-48 object-cover rounded-lg"
                       />
-                      <div className="absolute top-2 right-2">
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        <ImageDownloadButton
+                          imageUrl={prompt.imageUrl}
+                          filename={`evalprompts-prompt-${prompt.id}-iter-${prompt.iteration}.png`}
+                        />
                         <Button
                           size="sm"
                           variant="ghost"
@@ -539,6 +515,11 @@ export default function PromptEvaluator() {
                           </span>
                         </div>
                       </div>
+                      {prompt.feedback && (
+                        <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                          <strong>AI Feedback:</strong> {prompt.feedback}
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -576,146 +557,34 @@ export default function PromptEvaluator() {
               {isEvaluating ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Analyzing with GPT-4o-mini...
+                  Analyzing with AI...
                 </>
               ) : (
                 <>
                   <Eye className="w-4 h-4 mr-2" />
-                  Evaluate with AI Analysis
-                </>
-              )}
-            </Button>
-
-            {evaluationResult && (
-              <Button
-                onClick={handleApplyRecommendations}
-                disabled={isApplyingRecommendations}
-                size="lg"
-                variant="outline"
-                className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-              >
-                {isApplyingRecommendations ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Applying Recommendations...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-4 h-4 mr-2" />
-                    Apply AI Recommendations
-                  </>
-                )}
-              </Button>
-            )}
-
-            <Button
-              onClick={handleRefinePrompts}
-              disabled={isRefining || !evaluationResult}
-              size="lg"
-              variant="outline"
-            >
-              {isRefining ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Refining...
-                </>
-              ) : (
-                <>
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  AI Refine Prompts
+                  Evaluate with AI
                 </>
               )}
             </Button>
           </div>
 
-          {/* Evaluation Results - No Tabs, Three Sections */}
+          {/* Evaluation Results */}
           {evaluationResult && (
-            <div className="space-y-6 mb-8">
-              {/* AI Analysis Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Eye className="w-5 h-5" />
-                    AI Analysis & Comparison
-                    <Badge variant="outline" className="ml-2">
-                      {evaluationResult.criteriaUsed.icon} {evaluationResult.criteriaUsed.name}
-                    </Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    GPT-4o-mini analysis of prompts and generated images using{" "}
-                    {evaluationResult.criteriaUsed.description.toLowerCase()}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="prose max-w-none">
-                    <p className="text-gray-700 leading-relaxed whitespace-pre-line">{evaluationResult.comparison}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Best Prompt Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="w-5 h-5" />
-                    Best Performing Prompt
-                  </CardTitle>
-                  <CardDescription>The highest-scoring prompt based on the custom evaluation criteria</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <p className="text-green-800 font-medium">{evaluationResult.bestPrompt}</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* AI Recommendations Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5" />
-                    AI Recommendations
-                    <Button
-                      onClick={handleApplyRecommendations}
-                      disabled={isApplyingRecommendations}
-                      size="sm"
-                      className="ml-auto bg-green-600 hover:bg-green-700"
-                    >
-                      {isApplyingRecommendations ? (
-                        <>
-                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                          Applying...
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="w-3 h-3 mr-1" />
-                          Apply All
-                        </>
-                      )}
-                    </Button>
-                  </CardTitle>
-                  <CardDescription>
-                    Actionable suggestions to improve your prompts based on detailed analysis
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {evaluationResult.recommendations.map((rec, index) => (
-                      <div
-                        key={index}
-                        className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg border border-blue-100"
-                      >
-                        <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
-                          {index + 1}
-                        </div>
-                        <p className="text-blue-800 leading-relaxed">{rec}</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <EvaluationResultsSection
+              evaluationResult={evaluationResult}
+              onApplyRecommendations={handleImprovePrompts}
+              isApplyingRecommendations={isImproving}
+            />
           )}
+
+          {/* Usage Stats Modal */}
+          <UsageStatsModal
+            isOpen={showUsageModal}
+            onClose={() => setShowUsageModal(false)}
+            stats={stats}
+            onReset={resetStats}
+            recentRequests={getRecentRequests()}
+          />
 
           {/* Footer */}
           <footer className="text-center py-8 mt-16 border-t border-gray-200 bg-white/50 rounded-lg">
