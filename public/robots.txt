@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://evalprompts.vercel.app/sitemap.xml
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Block access to API routes for crawlers
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+
+# Allow all other content
+Allow: /
