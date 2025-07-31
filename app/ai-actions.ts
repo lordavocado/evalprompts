@@ -9,9 +9,11 @@ interface GeneratedContent {
   prompts: string[]
 }
 
+type VariationMode = "identical" | "variations" | "radical"
+
 // Mock function for when OpenAI is not available
-async function mockGenerateContent(description: string): Promise<GeneratedContent> {
-  console.log("Using mock content generation")
+async function mockGenerateContent(description: string, mode: VariationMode): Promise<GeneratedContent> {
+  console.log(`Using mock content generation with ${mode} mode`)
   await new Promise((resolve) => setTimeout(resolve, 3000))
 
   // Analyze description to determine type
@@ -76,12 +78,26 @@ async function mockGenerateContent(description: string): Promise<GeneratedConten
     ],
   }
 
-  // Generate mock prompts based on description
-  const basePrompts = [
-    `${description}, highly detailed, professional quality`,
-    `${description}, artistic style, enhanced composition, vibrant colors`,
-    `${description}, cinematic lighting, 8K resolution, masterpiece quality`,
-  ]
+  // Generate mock prompts based on mode
+  let basePrompts: string[]
+
+  if (mode === "identical") {
+    const singlePrompt = `${description}, highly detailed, professional quality`
+    basePrompts = [singlePrompt, singlePrompt, singlePrompt]
+  } else if (mode === "radical") {
+    basePrompts = [
+      `${description}, photorealistic style, studio lighting, commercial photography`,
+      `${description}, artistic illustration, vibrant colors, creative composition`,
+      `${description}, minimalist design, clean lines, modern aesthetic`,
+    ]
+  } else {
+    // variations mode (default)
+    basePrompts = [
+      `${description}, highly detailed, professional quality`,
+      `${description}, artistic style, enhanced composition, vibrant colors`,
+      `${description}, cinematic lighting, 8K resolution, masterpiece quality`,
+    ]
+  }
 
   return {
     criteria: mockCriteria,
@@ -92,11 +108,12 @@ async function mockGenerateContent(description: string): Promise<GeneratedConten
 export async function generateCustomContent(
   description: string,
   apiKeys: { openaiKey?: string; falKey?: string },
+  mode: VariationMode = "variations",
 ): Promise<GeneratedContent> {
   // Check if OpenAI API key is available
   if (!apiKeys.openaiKey) {
     console.log("OpenAI API key not provided, using mock generation")
-    return mockGenerateContent(description)
+    return mockGenerateContent(description, mode)
   }
 
   try {
@@ -113,7 +130,7 @@ export async function generateCustomContent(
       })
     } catch (testError: any) {
       console.log("OpenAI API test failed:", testError?.message || testError)
-      return mockGenerateContent(description)
+      return mockGenerateContent(description, mode)
     }
 
     // Generate custom evaluation criteria
@@ -162,17 +179,26 @@ Respond with ONLY a valid JSON object in this exact format (no markdown, no code
 Make sure the criteria are highly specific to the described use case and the weights sum to exactly 1.0.`,
     })
 
-    // Generate 3 optimized Flux prompts
+    // Generate prompts based on mode
+    let promptGenerationInstruction = ""
+
+    if (mode === "identical") {
+      promptGenerationInstruction = `Generate 1 highly optimized prompt for Flux AI image generation, then return it 3 times in the array. The prompt should be specifically tailored to: "${description}"`
+    } else if (mode === "radical") {
+      promptGenerationInstruction = `Generate 3 completely different and radical approaches to: "${description}". Each prompt should take a fundamentally different creative direction - for example: one photorealistic, one artistic/stylized, one minimalist/abstract. Make them as diverse as possible while still serving the core concept.`
+    } else {
+      // variations mode (default)
+      promptGenerationInstruction = `Generate 3 different, optimized prompts for Flux AI image generation based on: "${description}". Each prompt should be similar but with small variations in style, composition, or technical details.`
+    }
+
     const { text: promptsText } = await generateText({
       model,
-      prompt: `Based on this image creation request: "${description}"
+      prompt: `${promptGenerationInstruction}
 
-Generate 3 different, highly optimized prompts for Flux AI image generation. Each prompt should:
-1. Be specifically tailored to the described use case
-2. Include relevant technical details (lighting, composition, style)
-3. Use effective keywords that work well with AI image generation
-4. Be distinct from each other while serving the same goal
-5. Be optimized for the best possible results
+Each prompt should:
+1. Include relevant technical details (lighting, composition, style)
+2. Use effective keywords that work well with AI image generation
+3. Be optimized for the best possible results
 
 Respond with ONLY a valid JSON array of exactly 3 strings (no markdown, no code blocks, no extra text):
 ["prompt1", "prompt2", "prompt3"]
@@ -205,10 +231,10 @@ Make each prompt detailed and specific, incorporating best practices for AI imag
       }
     } catch (parseError) {
       console.error("Error parsing AI response:", parseError)
-      return mockGenerateContent(description)
+      return mockGenerateContent(description, mode)
     }
   } catch (error: any) {
     console.error("Error generating custom content:", error?.message || error)
-    return mockGenerateContent(description)
+    return mockGenerateContent(description, mode)
   }
 }

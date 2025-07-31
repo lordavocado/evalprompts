@@ -103,6 +103,109 @@ export async function generateImages(
   return imageUrls
 }
 
+// Apply custom direction to improve prompts
+export async function applyCustomDirection(
+  prompts: PromptData[],
+  direction: string,
+  criteria: EvaluationCriteria,
+  favorites: FavoriteImage[],
+  apiKeys: { openaiKey?: string; falKey?: string },
+  onTrackUsage?: (model: string, estimatedTokens: number) => void,
+): Promise<PromptData[]> {
+  if (!apiKeys.openaiKey) {
+    console.log("OpenAI API key not provided, using mock improvement")
+    return prompts.map((prompt) => ({
+      ...prompt,
+      text: `${prompt.text}, ${direction}`,
+      imageUrl: undefined,
+      scores: undefined,
+      feedback: undefined,
+      suggestions: undefined,
+    }))
+  }
+
+  try {
+    const model = openai("gpt-4o-mini", {
+      apiKey: apiKeys.openaiKey,
+    })
+
+    // Get favorite patterns if available
+    let favoriteInsights = ""
+    if (favorites.length > 0) {
+      const patterns = await analyzeFavoritePatterns(favorites, apiKeys, onTrackUsage)
+      favoriteInsights = patterns.analysis
+    }
+
+    const improvedPrompts = await Promise.all(
+      prompts.map(async (prompt) => {
+        try {
+          const { text: improvedPrompt } = await generateText({
+            model,
+            prompt: `Improve this AI image prompt based on the user's specific direction:
+
+ORIGINAL PROMPT: "${prompt.text}"
+
+USER DIRECTION: "${direction}"
+
+EVALUATION CRITERIA:
+${Object.entries(criteria.criteria)
+  .map(([key, criterion]) => `${criterion.name}: ${criterion.description}`)
+  .join("\n")}
+
+${favoriteInsights ? `USER PREFERENCES: ${favoriteInsights}` : ""}
+
+Create an improved version that:
+1. Incorporates the user's specific direction as the primary focus
+2. Maintains the core creative concept
+3. Aligns with the evaluation criteria definitions
+4. Considers user preferences from favorite images
+
+IMPORTANT: The user direction "${direction}" should be the main focus of the improvements.
+
+Return ONLY the improved prompt text, nothing else.`,
+          })
+
+          // Track usage for improvement
+          if (onTrackUsage) {
+            onTrackUsage("gpt-4o-mini", 400)
+          }
+
+          return {
+            ...prompt,
+            text: improvedPrompt.trim(),
+            imageUrl: undefined,
+            scores: undefined,
+            feedback: undefined,
+            suggestions: undefined,
+          }
+        } catch (error: any) {
+          console.error("Error improving prompt:", error?.message || error)
+          return {
+            ...prompt,
+            text: `${prompt.text}, ${direction}`,
+            imageUrl: undefined,
+            scores: undefined,
+            feedback: undefined,
+            suggestions: undefined,
+          }
+        }
+      }),
+    )
+
+    return improvedPrompts
+  } catch (error: any) {
+    console.error("Error applying custom direction:", error?.message || error)
+    return prompts.map((prompt) => ({
+      ...prompt,
+      text: `${prompt.text}, ${direction}`,
+      imageUrl: undefined,
+      scores: undefined,
+      feedback: undefined,
+      suggestions: undefined,
+    }))
+  }
+}
+
 // Mock evaluation function for when OpenAI API is not available
 async function mockEvaluatePrompts(prompts: PromptData[], criteria: EvaluationCriteria, favorites: FavoriteImage[]) {
   console.log("Using mock evaluation")
@@ -452,10 +555,10 @@ Respond with ONLY valid JSON (no markdown):
   }
 }
 
-// Apply AI recommendations to improve prompts (this replaces both applyRecommendations and refinePromptsWithCriteria)
-export async function improvePrompts(
+// Apply selective improvements with user feedback
+export async function improvePromptsSelectively(
   prompts: PromptData[],
-  recommendations: string[],
+  selectedRecommendations: string[],
   criteria: EvaluationCriteria,
   favorites: FavoriteImage[],
   apiKeys: { openaiKey?: string; falKey?: string },
@@ -465,7 +568,7 @@ export async function improvePrompts(
     console.log("OpenAI API key not provided, using mock improvement")
     return prompts.map((prompt) => ({
       ...prompt,
-      text: prompt.text + ", enhanced with AI improvements",
+      text: prompt.text + ", enhanced with selected improvements",
       imageUrl: undefined,
       scores: undefined,
       feedback: undefined,
@@ -490,7 +593,7 @@ export async function improvePrompts(
         try {
           const { text: improvedPrompt } = await generateText({
             model,
-            prompt: `Improve this AI image prompt based on the specific evaluation criteria and recommendations:
+            prompt: `Improve this AI image prompt based on the specific evaluation criteria and selected improvements:
 
 ORIGINAL PROMPT: "${prompt.text}"
 
@@ -505,23 +608,27 @@ ${Object.entries(criteria.criteria)
   .join("\n")}
 Overall: ${prompt.scores?.overall?.toFixed(1) || 0}/10
 
-IMPROVEMENT AREAS:
-${recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}
+${
+  selectedRecommendations.length > 0
+    ? `SELECTED IMPROVEMENTS TO APPLY:
+${selectedRecommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}`
+    : ""
+}
 
 ${favoriteInsights ? `USER PREFERENCES: ${favoriteInsights}` : ""}
 
 Create an improved version that:
-1. Addresses the specific criteria definitions
-2. Incorporates the improvement recommendations
-3. Maintains the core creative concept
-4. Aligns with user preferences
+1. Addresses the selected improvement areas specifically
+2. Maintains the core creative concept
+3. Aligns with the evaluation criteria definitions
+4. Considers user preferences from favorite images
 
 Return ONLY the improved prompt text, nothing else.`,
           })
 
           // Track usage for improvement
           if (onTrackUsage) {
-            onTrackUsage("gpt-4o-mini", 500)
+            onTrackUsage("gpt-4o-mini", 600)
           }
 
           return {
@@ -550,7 +657,7 @@ Return ONLY the improved prompt text, nothing else.`,
     console.error("Error improving prompts:", error?.message || error)
     return prompts.map((prompt) => ({
       ...prompt,
-      text: prompt.text + ", enhanced with AI improvements",
+      text: prompt.text + ", enhanced with selected improvements",
       imageUrl: undefined,
       scores: undefined,
       feedback: undefined,
@@ -560,5 +667,6 @@ Return ONLY the improved prompt text, nothing else.`,
 }
 
 // Legacy functions for backward compatibility
-export const applyRecommendations = improvePrompts
-export const refinePromptsWithCriteria = improvePrompts
+export const improvePrompts = improvePromptsSelectively
+export const applyRecommendations = improvePromptsSelectively
+export const refinePromptsWithCriteria = improvePromptsSelectively

@@ -14,8 +14,9 @@ import { generateCustomContent } from "./ai-actions"
 import {
   generateImages,
   evaluatePromptsWithCriteria,
-  improvePrompts,
+  improvePromptsSelectively,
   analyzeFavoritePatterns,
+  applyCustomDirection,
 } from "./enhanced-actions"
 import type { EvaluationCriteria } from "@/types/evaluation-criteria"
 import { ProductExplainer } from "@/components/product-explainer"
@@ -26,7 +27,9 @@ import { ImageFavorites } from "@/components/image-favorites"
 import { ImageDownloadButton } from "@/components/image-download-button"
 import { UsageStatsWidget } from "@/components/usage-stats-widget"
 import { UsageStatsModal } from "@/components/usage-stats-modal"
-import { EvaluationResultsSection } from "@/components/evaluation-results-section"
+import { SelectiveImprovementsSection } from "@/components/selective-improvements-section"
+import { PromptVariationSelector } from "@/components/prompt-variation-selector"
+import { CustomDirectionInput } from "@/components/custom-direction-input"
 import { FLUX_MODELS, getModelRecommendations, type FluxModel } from "@/types/flux-models"
 
 interface PromptData {
@@ -48,6 +51,7 @@ interface EvaluationResult {
 }
 
 type AppStep = "api-setup" | "description" | "generating-content" | "evaluation"
+type VariationMode = "identical" | "variations" | "radical"
 
 interface FavoriteImage {
   id: string
@@ -78,6 +82,7 @@ export default function PromptEvaluator() {
   const [selectedFluxModel, setSelectedFluxModel] = useState<FluxModel>(FLUX_MODELS[0])
   const [recommendedModels, setRecommendedModels] = useState<FluxModel[]>([])
   const [favorites, setFavorites] = useState<FavoriteImage[]>([])
+  const [variationMode, setVariationMode] = useState<VariationMode>("variations")
 
   // Dynamic SEO based on current step and user input
   const getSEOProps = () => {
@@ -115,7 +120,7 @@ export default function PromptEvaluator() {
     setIsGeneratingContent(true)
 
     try {
-      const content = await generateCustomContent(description, apiKeys)
+      const content = await generateCustomContent(description, apiKeys, variationMode)
       setCustomCriteria(content.criteria)
 
       // Get model recommendations
@@ -236,7 +241,7 @@ export default function PromptEvaluator() {
 
     setIsImproving(true)
     try {
-      const improvedPrompts = await improvePrompts(
+      const improvedPrompts = await improvePromptsSelectively(
         prompts,
         insights.recommendations,
         customCriteria,
@@ -258,17 +263,17 @@ export default function PromptEvaluator() {
     }
   }
 
-  const handleImprovePrompts = async () => {
-    if (!evaluationResult || !customCriteria) {
+  const handleSelectiveImprovements = async (selectedRecommendations: string[]) => {
+    if (!customCriteria) {
       alert("Please evaluate prompts first")
       return
     }
 
     setIsImproving(true)
     try {
-      const improvedPrompts = await improvePrompts(
+      const improvedPrompts = await improvePromptsSelectively(
         prompts,
-        evaluationResult.recommendations,
+        selectedRecommendations,
         customCriteria,
         favorites,
         apiKeys,
@@ -288,6 +293,36 @@ export default function PromptEvaluator() {
     }
   }
 
+  const handleCustomDirection = async (direction: string) => {
+    if (!customCriteria) {
+      alert("Please set up evaluation criteria first")
+      return
+    }
+
+    setIsImproving(true)
+    try {
+      const improvedPrompts = await applyCustomDirection(
+        prompts,
+        direction,
+        customCriteria,
+        favorites,
+        apiKeys,
+        trackOpenAIRequest,
+      )
+      const newIteration = currentIteration + 1
+      setPrompts(
+        improvedPrompts.map((p) => ({ ...p, iteration: newIteration, imageUrl: undefined, scores: undefined })),
+      )
+      setCurrentIteration(newIteration)
+      setEvaluationResult(null)
+    } catch (error) {
+      console.error("Error applying custom direction:", error)
+      alert(`Error applying direction: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setIsImproving(false)
+    }
+  }
+
   const handleStartOver = () => {
     setCurrentStep("description")
     setUserDescription("")
@@ -295,12 +330,13 @@ export default function PromptEvaluator() {
     setPrompts([])
     setEvaluationResult(null)
     setCurrentIteration(1)
+    setVariationMode("variations")
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 8) return "text-green-600"
-    if (score >= 6) return "text-yellow-600"
-    return "text-red-600"
+    if (score >= 8) return "text-gray-900"
+    if (score >= 6) return "text-gray-700"
+    return "text-gray-500"
   }
 
   const getScoreLabel = (score: number) => {
@@ -343,7 +379,12 @@ export default function PromptEvaluator() {
     return (
       <>
         <SEOHead {...seoProps} />
-        <ImageDescriptionChat onComplete={handleDescriptionComplete} apiKeys={apiKeys} />
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+          <div className="max-w-4xl mx-auto">
+            <PromptVariationSelector selectedMode={variationMode} onModeChange={setVariationMode} />
+            <ImageDescriptionChat onComplete={handleDescriptionComplete} apiKeys={apiKeys} />
+          </div>
+        </div>
       </>
     )
   }
@@ -355,10 +396,10 @@ export default function PromptEvaluator() {
           title="Generating Custom Criteria | EvalPrompts AI Working..."
           description={`EvalPrompts AI is analyzing "${userDescription}" and generating personalized evaluation criteria with optimized prompts.`}
         />
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-6">
-          <Card className="w-full max-w-2xl">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6">
+          <Card className="w-full max-w-2xl border-gray-200">
             <CardContent className="flex flex-col items-center justify-center p-12 space-y-4">
-              <Loader2 className="w-12 h-12 animate-spin text-purple-600" />
+              <Loader2 className="w-12 h-12 animate-spin text-gray-900" />
               <h2 className="text-2xl font-bold text-gray-900">EvalPrompts AI Working...</h2>
               <p className="text-gray-600 text-center">
                 Analyzing your description and generating personalized criteria and optimized prompts...
@@ -374,22 +415,30 @@ export default function PromptEvaluator() {
   return (
     <>
       <SEOHead {...seoProps} />
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-4 mb-4">
-              <Button variant="outline" onClick={handleStartOver} className="flex items-center gap-2 bg-transparent">
+              <Button
+                variant="outline"
+                onClick={handleStartOver}
+                className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 Start Over
               </Button>
-              <Button variant="outline" onClick={() => setCurrentStep("api-setup")} className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep("api-setup")}
+                className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
                 <Settings className="w-4 h-4" />
                 API Settings
               </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowUsageModal(true)}
-                className="flex items-center gap-2 bg-transparent"
+                className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50"
               >
                 <BarChart3 className="w-4 h-4" />
                 Usage Stats
@@ -402,11 +451,11 @@ export default function PromptEvaluator() {
             </p>
 
             <div className="flex items-center justify-center gap-4">
-              <Badge variant="outline" className="text-sm">
+              <Badge variant="outline" className="text-sm border-gray-300 text-gray-700">
                 <Sparkles className="w-4 h-4 mr-1" />
                 Iteration {currentIteration}
               </Badge>
-              <Badge variant="outline" className="text-sm">
+              <Badge variant="outline" className="text-sm border-gray-300 text-gray-700">
                 <TrendingUp className="w-4 h-4 mr-1" />
                 GPT-4o-mini Analysis
               </Badge>
@@ -436,27 +485,30 @@ export default function PromptEvaluator() {
             onApplyFavoriteInsights={applyFavoriteInsights}
           />
 
+          {/* Custom Direction Input - Now positioned after images */}
+          {customCriteria && <CustomDirectionInput onApplyDirection={handleCustomDirection} isApplying={isImproving} />}
+
           {/* Prompts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             {prompts.map((prompt, index) => (
-              <Card key={prompt.id} className="relative overflow-hidden">
+              <Card key={prompt.id} className="relative overflow-hidden border-gray-200">
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
+                  <CardTitle className="flex items-center justify-between text-gray-900">
                     AI Prompt {index + 1}
                     {prompt.scores && (
-                      <Badge className={getScoreColor(prompt.scores.overall)}>
+                      <Badge className={`${getScoreColor(prompt.scores.overall)} border-gray-300`} variant="outline">
                         {prompt.scores.overall.toFixed(1)}/10
                       </Badge>
                     )}
                   </CardTitle>
-                  <CardDescription>Iteration {prompt.iteration}</CardDescription>
+                  <CardDescription className="text-gray-600">Iteration {prompt.iteration}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <Textarea
                     value={prompt.text}
                     onChange={(e) => updatePrompt(prompt.id, e.target.value)}
                     placeholder="AI-generated prompt..."
-                    className="min-h-[100px]"
+                    className="min-h-[100px] border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                   />
 
                   {prompt.imageUrl && (
@@ -480,7 +532,7 @@ export default function PromptEvaluator() {
                           <Heart
                             className={`w-4 h-4 ${
                               favorites.some((f) => f.prompt === prompt.text && f.imageUrl === prompt.imageUrl)
-                                ? "fill-red-500 text-red-500"
+                                ? "fill-gray-900 text-gray-900"
                                 : "text-gray-600"
                             }`}
                           />
@@ -533,7 +585,7 @@ export default function PromptEvaluator() {
               onClick={handleGenerateImages}
               disabled={isGenerating}
               size="lg"
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className="bg-gray-900 hover:bg-gray-800 text-white"
             >
               {isGenerating ? (
                 <>
@@ -553,6 +605,7 @@ export default function PromptEvaluator() {
               disabled={isEvaluating || !prompts.every((p) => p.imageUrl)}
               size="lg"
               variant="outline"
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               {isEvaluating ? (
                 <>
@@ -568,12 +621,12 @@ export default function PromptEvaluator() {
             </Button>
           </div>
 
-          {/* Evaluation Results */}
+          {/* Selective Improvements Results */}
           {evaluationResult && (
-            <EvaluationResultsSection
+            <SelectiveImprovementsSection
               evaluationResult={evaluationResult}
-              onApplyRecommendations={handleImprovePrompts}
-              isApplyingRecommendations={isImproving}
+              onApplyImprovements={handleSelectiveImprovements}
+              isApplyingImprovements={isImproving}
             />
           )}
 
@@ -589,7 +642,7 @@ export default function PromptEvaluator() {
           {/* Footer */}
           <footer className="text-center py-8 mt-16 border-t border-gray-200 bg-white/50 rounded-lg">
             <p className="text-gray-600 mb-4">
-              Made with <span className="text-red-500">♥</span> by Nichlas Campos
+              Made with <span className="text-gray-900">♥</span> by Nichlas Campos
             </p>
             <p className="text-gray-500 text-sm mb-4">Feel free to connect on LinkedIn or X</p>
             <div className="flex items-center justify-center gap-4">
@@ -597,7 +650,7 @@ export default function PromptEvaluator() {
                 href="https://www.linkedin.com/in/nichlaskvist/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:text-blue-700 transition-colors"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
