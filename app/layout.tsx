@@ -132,11 +132,11 @@ const jsonLd = {
   name: "EvalPrompts",
   description:
     "AI-powered prompt evaluation and optimization platform for image generation. Transform your creative ideas into high-performing prompts with custom criteria and iterative improvement.",
-  url: "https://evalprompts.vercel.app",
+  url: "https://evalprompts.com",
   applicationCategory: "AI Tools",
   operatingSystem: "Web Browser",
-  image: "https://evalprompts.vercel.app/og-image.png",
-  screenshot: "https://evalprompts.vercel.app/og-image.png",
+  image: "https://evalprompts.com/og-image.png",
+  screenshot: "https://evalprompts.com/og-image.png",
   offers: {
     "@type": "Offer",
     price: "0",
@@ -195,10 +195,10 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://github.com" />
 
         {/* Canonical URL */}
-        <link rel="canonical" href="https://evalprompts.vercel.app" />
+        <link rel="canonical" href="https://evalprompts.com" />
 
         {/* Alternative languages (if you plan to add them) */}
-        <link rel="alternate" hrefLang="en" href="https://evalprompts.vercel.app" />
+        <link rel="alternate" hrefLang="en" href="https://evalprompts.com" />
 
         {/* Sitemap */}
         <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
