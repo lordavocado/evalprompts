@@ -50,7 +50,7 @@ export function ImageDescriptionChat({ onComplete, apiKeys }: ImageDescriptionCh
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-white flex items-center justify-center p-6">
       <Card className="w-full max-w-3xl">
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center gap-2 text-2xl">
@@ -63,7 +63,7 @@ export function ImageDescriptionChat({ onComplete, apiKeys }: ImageDescriptionCh
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <Alert className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+          <Alert className="bg-mono-50 border-mono-200">
             <Sparkles className="h-4 w-4" />
             <AlertDescription>
               <strong>EvalPrompts AI:</strong> Based on your description, our AI will create personalized evaluation
@@ -115,7 +115,7 @@ export function ImageDescriptionChat({ onComplete, apiKeys }: ImageDescriptionCh
                   key={index}
                   variant="outline"
                   size="sm"
-                  className="text-left justify-start h-auto p-3 text-xs bg-transparent"
+                  className="text-left justify-start h-auto p-3 text-xs bg-white border-mono-200 hover:bg-mono-50"
                   onClick={() => setDescription(prompt)}
                   disabled={isLoading}
                 >

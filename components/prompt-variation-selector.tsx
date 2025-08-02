@@ -37,23 +37,23 @@ export function PromptVariationSelector({ selectedMode, onModeChange }: PromptVa
   ]
 
   return (
-    <Card className="mb-6 border-gray-200">
+    <Card className="mb-6 border-mono-200 shadow-none">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-gray-900">
+        <CardTitle className="flex items-center gap-2 text-mono-900">
           <Shuffle className="w-5 h-5" />
           Prompt Generation Mode
         </CardTitle>
-        <CardDescription className="text-gray-600">Choose how the AI should create your 3 prompts</CardDescription>
+        <CardDescription className="text-mono-600">Choose how the AI should create your 3 prompts</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {modes.map((mode) => (
             <Card
               key={mode.id}
-              className={`cursor-pointer transition-all hover:shadow-md border ${
+              className={`cursor-pointer transition-all hover:shadow-sm border ${
                 selectedMode === mode.id
-                  ? "border-gray-900 bg-gray-50 shadow-sm"
-                  : "border-gray-200 hover:border-gray-300"
+                  ? "border-mono-900 bg-mono-50 shadow-none"
+                  : "border-mono-200 hover:border-mono-300 shadow-none"
               }`}
               onClick={() => onModeChange(mode.id)}
             >
@@ -65,20 +65,20 @@ export function PromptVariationSelector({ selectedMode, onModeChange }: PromptVa
                   </div>
                   <Badge
                     variant={selectedMode === mode.id ? "default" : "outline"}
-                    className={selectedMode === mode.id ? "bg-gray-900 text-white" : "border-gray-300 text-gray-600"}
+                    className={selectedMode === mode.id ? "bg-mono-900 text-white" : "border-mono-300 text-mono-600 bg-white"}
                   >
                     {mode.badge}
                   </Badge>
                 </CardTitle>
-                <CardDescription className="text-sm text-gray-600">{mode.description}</CardDescription>
+                <CardDescription className="text-sm text-mono-600">{mode.description}</CardDescription>
               </CardHeader>
             </Card>
           ))}
         </div>
 
         {selectedMode && (
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-700">
+          <div className="mt-4 p-3 bg-mono-50 rounded-lg border border-mono-200">
+            <p className="text-sm text-mono-700">
               <strong>Selected:</strong> {modes.find((m) => m.id === selectedMode)?.description}
             </p>
           </div>

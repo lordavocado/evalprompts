@@ -150,7 +150,7 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
   }
 
   return (
-    <div className="min-h-screen bg-mono-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-white flex items-center justify-center p-6">
       <Card className="w-full max-w-2xl">
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center gap-2 text-2xl">

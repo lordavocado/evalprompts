@@ -363,9 +363,9 @@ export default function PromptEvaluator() {
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 8) return "text-gray-900"
-    if (score >= 6) return "text-gray-700"
-    return "text-gray-500"
+    if (score >= 8) return "text-mono-900"
+    if (score >= 6) return "text-mono-700"
+    return "text-mono-500"
   }
 
   const getScoreLabel = (score: number) => {
@@ -425,7 +425,7 @@ export default function PromptEvaluator() {
           title="Generating Custom Criteria | EvalPrompts AI Working..."
           description={`EvalPrompts AI is analyzing "${userDescription}" and generating personalized evaluation criteria with optimized prompts.`}
         />
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="min-h-screen bg-white">
           <EnhancedLoadingOverlay
             isVisible={true}
             title="EvalPrompts AI Working"
@@ -447,7 +447,7 @@ export default function PromptEvaluator() {
               <Button
                 variant="outline"
                 onClick={handleStartOver}
-                className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50 bg-transparent"
+                className="flex items-center gap-2 border-mono-300 text-mono-700 hover:bg-mono-50 bg-white"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Start Over
@@ -455,7 +455,7 @@ export default function PromptEvaluator() {
               <Button
                 variant="outline"
                 onClick={() => setCurrentStep("api-setup")}
-                className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+                className="flex items-center gap-2 border-mono-300 text-mono-700 hover:bg-mono-50 bg-white"
               >
                 <Settings className="w-4 h-4" />
                 API Settings
@@ -463,25 +463,23 @@ export default function PromptEvaluator() {
               <Button
                 variant="outline"
                 onClick={() => setShowUsageModal(true)}
-                className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+                className="flex items-center gap-2 border-mono-300 text-mono-700 hover:bg-mono-50 bg-white"
               >
                 <BarChart3 className="w-4 h-4" />
                 Usage Stats
               </Button>
             </div>
 
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">EvalPrompts</h1>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-4">
+            <h1 className="text-4xl font-bold text-mono-900 mb-4">EvalPrompts</h1>
+            <p className="text-lg text-mono-600 max-w-3xl mx-auto mb-6">
               AI-powered prompt evaluation and optimization for: <strong>"{userDescription}"</strong>
             </p>
 
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <Badge variant="outline" className="text-sm border-gray-300 text-gray-700">
-                <Sparkles className="w-4 h-4 mr-1" />
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <Badge variant="outline" className="text-sm border-mono-300 text-mono-700 bg-white">
                 Iteration {currentIteration}
               </Badge>
-              <Badge variant="outline" className="text-sm border-gray-300 text-gray-700">
-                <TrendingUp className="w-4 h-4 mr-1" />
+              <Badge variant="outline" className="text-sm border-mono-300 text-mono-700 bg-white">
                 GPT-4o-mini Analysis
               </Badge>
             </div>
@@ -527,24 +525,24 @@ export default function PromptEvaluator() {
           {/* Prompts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             {prompts.map((prompt, index) => (
-              <Card key={prompt.id} className="relative overflow-hidden border-gray-200">
+              <Card key={prompt.id} className="relative overflow-hidden border-mono-200 shadow-none">
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between text-gray-900">
+                  <CardTitle className="flex items-center justify-between text-mono-900">
                     AI Prompt {index + 1}
                     {prompt.scores && (
-                      <Badge className={`${getScoreColor(prompt.scores.overall)} border-gray-300`} variant="outline">
+                      <Badge className={`${getScoreColor(prompt.scores.overall)} border-mono-300 bg-white`} variant="outline">
                         {prompt.scores.overall.toFixed(1)}/10
                       </Badge>
                     )}
                   </CardTitle>
-                  <CardDescription className="text-gray-600">Iteration {prompt.iteration}</CardDescription>
+                  <CardDescription className="text-mono-600">Iteration {prompt.iteration}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <Textarea
                     value={prompt.text}
                     onChange={(e) => updatePrompt(prompt.id, e.target.value)}
                     placeholder="AI-generated prompt..."
-                    className="min-h-[200px] border-gray-300 focus:border-gray-500 focus:ring-gray-500"
+                    className="min-h-[200px] border-mono-300 focus:border-mono-500 focus:ring-mono-500"
                   />
 
                   {prompt.imageUrl && (
@@ -589,7 +587,7 @@ export default function PromptEvaluator() {
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         {Object.entries(customCriteria.criteria).map(([key, criterion]) => (
                           <div key={key} className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500 truncate">{criterion.name}:</span>
+                            <span className="text-xs text-mono-500 truncate">{criterion.name}:</span>
                             <span className={getScoreColor(prompt.scores?.[key] || 0)}>
                               {(prompt.scores?.[key] || 0).toFixed(1)}
                             </span>
@@ -604,7 +602,7 @@ export default function PromptEvaluator() {
                         </div>
                       </div>
                       {prompt.feedback && (
-                        <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                        <div className="text-xs text-mono-600 bg-mono-50 p-2 rounded">
                           <strong>AI Feedback:</strong> {prompt.feedback}
                         </div>
                       )}
@@ -621,7 +619,7 @@ export default function PromptEvaluator() {
               onClick={handleGenerateImages}
               disabled={isGenerating}
               size="lg"
-              className="bg-gray-900 hover:bg-gray-800 text-white"
+              className="bg-mono-900 hover:bg-mono-800 text-white"
             >
               {isGenerating ? (
                 <>
@@ -641,7 +639,7 @@ export default function PromptEvaluator() {
               disabled={isEvaluating || !prompts.every((p) => p.imageUrl)}
               size="lg"
               variant="outline"
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="border-mono-300 text-mono-700 hover:bg-mono-50 bg-white"
             >
               {isEvaluating ? (
                 <>
@@ -712,17 +710,17 @@ export default function PromptEvaluator() {
           />
 
           {/* Footer */}
-          <footer className="text-center py-8 mt-16 border-t border-gray-200 bg-white/50 rounded-lg">
-            <p className="text-gray-600 mb-4">
-              Made with <span className="text-gray-900">♥</span> by Nichlas Campos
+          <footer className="text-center py-12 mt-16 border-t border-mono-200">
+            <p className="text-mono-600 mb-4">
+              Made with <span className="text-mono-900">♥</span> by Nichlas Campos
             </p>
-            <p className="text-gray-500 text-sm mb-4">Feel free to connect on LinkedIn or X</p>
-            <div className="flex items-center justify-center gap-4">
+            <p className="text-mono-500 text-sm mb-6">Feel free to connect on LinkedIn or X</p>
+            <div className="flex items-center justify-center gap-6">
               <a
                 href="https://www.linkedin.com/in/nichlaskvist/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-600 hover:text-gray-900 transition-colors"
+                className="text-mono-600 hover:text-mono-900 transition-colors"
               >
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
@@ -732,7 +730,7 @@ export default function PromptEvaluator() {
                 href="https://x.com/nkjorg"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-800 hover:text-gray-900 transition-colors"
+                className="text-mono-600 hover:text-mono-900 transition-colors"
               >
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
