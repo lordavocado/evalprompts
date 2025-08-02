@@ -42,8 +42,20 @@ export async function generateImages(
   apiKeys: { openaiKey?: string; falKey?: string },
   onTrackUsage?: (modelId: string, imageCount: number) => void,
 ): Promise<string[]> {
+  console.log("🎨 Starting image generation...")
+  console.log("Model:", model.name)
+  console.log("Prompts count:", prompts.length)
+  console.log("Fal AI key provided:", !!apiKeys.falKey)
+  
   if (!apiKeys.falKey) {
-    console.log("Fal AI key not provided, using mock generation")
+    console.log("❌ Fal AI key not provided, using mock generation")
+    return generateImagesMock(prompts, model)
+  }
+
+  // Validate Fal AI key format
+  if (!apiKeys.falKey.startsWith('fal_')) {
+    console.error("❌ Invalid Fal AI key format - should start with 'fal_'")
+    console.log("Falling back to mock generation")
     return generateImagesMock(prompts, model)
   }
 
@@ -51,6 +63,8 @@ export async function generateImages(
   let successfulGenerations = 0
 
   try {
+    console.log("🔧 Configuring Fal AI client...")
+    
     // Dynamically import Fal to avoid build issues
     const fal = await import("@fal-ai/serverless-client")
 
@@ -58,10 +72,14 @@ export async function generateImages(
     fal.config({
       credentials: apiKeys.falKey,
     })
+    
+    console.log("✅ Fal AI client configured successfully")
 
-    for (const prompt of prompts) {
+    for (let i = 0; i < prompts.length; i++) {
+      const prompt = prompts[i]
       try {
-        console.log(`Generating image with ${model.name} for prompt: ${prompt}`)
+        console.log(`🖼️ [${i + 1}/${prompts.length}] Generating image with ${model.name}`)
+        console.log(`📝 Prompt: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`)
 
         // Use model-specific parameters
         const parameters = {
@@ -73,6 +91,9 @@ export async function generateImages(
           enable_safety_checker: true,
         }
 
+        console.log("⚙️ Parameters:", JSON.stringify(parameters, null, 2))
+        console.log(`🌐 Endpoint: ${model.endpoint}`)
+
         const result = (await fal.subscribe(model.endpoint, {
           input: parameters,
           logs: true,
@@ -80,16 +101,24 @@ export async function generateImages(
           timeout: 60000, // 60 second timeout
         })) as any
 
+        console.log("📨 Fal AI Response:", JSON.stringify(result, null, 2))
+
         if (result && result.images && result.images.length > 0) {
           imageUrls.push(result.images[0].url)
           successfulGenerations++
-          console.log(`Successfully generated image with ${model.name}`)
+          console.log(`✅ [${i + 1}/${prompts.length}] Successfully generated image`)
+          console.log(`🔗 Image URL: ${result.images[0].url}`)
         } else {
-          console.log("No images in result, using placeholder")
+          console.log(`❌ [${i + 1}/${prompts.length}] No images in result, using placeholder`)
+          console.log("Full result:", result)
           imageUrls.push(`/placeholder.svg?height=400&width=400&query=${encodeURIComponent(prompt)}`)
         }
       } catch (error: any) {
-        console.error(`Error generating image for prompt "${prompt}":`, error?.message || error)
+        console.error(`❌ [${i + 1}/${prompts.length}] Error generating image:`)
+        console.error("Error details:", error)
+        console.error("Error message:", error?.message)
+        console.error("Error status:", error?.status)
+        console.error("Error response:", error?.response?.data)
         imageUrls.push(`/placeholder.svg?height=400&width=400&query=${encodeURIComponent(prompt)}`)
       }
     }
@@ -99,10 +128,19 @@ export async function generateImages(
       onTrackUsage(model.endpoint, successfulGenerations)
     }
 
+    console.log(`🎯 Generation Summary: ${successfulGenerations}/${prompts.length} successful`)
+    
+    if (successfulGenerations === 0) {
+      console.log("⚠️ All image generations failed - check Fal AI key and account status")
+    }
+
     return imageUrls
   } catch (importError: any) {
-    console.error("Error with Fal AI service:", importError?.message || importError)
-    console.log("Falling back to mock generation")
+    console.error("❌ Critical error with Fal AI service:")
+    console.error("Import error:", importError)
+    console.error("Error message:", importError?.message)
+    console.error("Error stack:", importError?.stack)
+    console.log("🔄 Falling back to mock generation")
     return generateImagesMock(prompts, model)
   }
 }

@@ -105,6 +105,7 @@ export default function PromptEvaluator() {
   const [recommendedModels, setRecommendedModels] = useState<FluxModel[]>([])
   const [favorites, setFavorites] = useState<FavoriteImage[]>([])
   const [variationMode, setVariationMode] = useState<VariationMode>("variations")
+  const [hasGeneratedImages, setHasGeneratedImages] = useState(false)
 
   // Dynamic SEO based on current step and user input
   const getSEOProps = () => {
@@ -191,6 +192,7 @@ export default function PromptEvaluator() {
       }))
       
       addImageGeneration(promptsWithImages)
+      setHasGeneratedImages(true)
 
       const successCount = results.filter((url) => !url.includes("placeholder.svg")).length
       if (successCount === 0) {
@@ -357,6 +359,7 @@ export default function PromptEvaluator() {
     setEvaluationResult(null)
     setCurrentIteration(1)
     setVariationMode("variations")
+    setHasGeneratedImages(false)
   }
 
   const getScoreColor = (score: number) => {
@@ -510,14 +513,6 @@ export default function PromptEvaluator() {
             />
           )}
 
-          {/* Image Favorites */}
-          <ImageFavorites
-            favorites={favorites}
-            onRemoveFavorite={removeFavorite}
-            onAnalyzeFavorites={analyzeFavorites}
-            onApplyFavoriteInsights={applyFavoriteInsights}
-          />
-
           {/* Prompt History Panel */}
           <PromptHistoryPanel
             history={history}
@@ -528,9 +523,6 @@ export default function PromptEvaluator() {
             onNavigateToEntry={navigateToEntry}
             className="mb-8"
           />
-
-          {/* Custom Direction Input - Now positioned after images */}
-          {customCriteria && <CustomDirectionInput onApplyDirection={handleCustomDirection} isApplying={isImproving} />}
 
           {/* Prompts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -552,7 +544,7 @@ export default function PromptEvaluator() {
                     value={prompt.text}
                     onChange={(e) => updatePrompt(prompt.id, e.target.value)}
                     placeholder="AI-generated prompt..."
-                    className="min-h-[100px] border-gray-300 focus:border-gray-500 focus:ring-gray-500"
+                    className="min-h-[200px] border-gray-300 focus:border-gray-500 focus:ring-gray-500"
                   />
 
                   {prompt.imageUrl && (
@@ -560,7 +552,7 @@ export default function PromptEvaluator() {
                       <img
                         src={prompt.imageUrl || "/placeholder.svg"}
                         alt={`Generated from: ${prompt.text}`}
-                        className="w-full h-48 object-cover rounded-lg"
+                        className="w-full h-80 object-cover rounded-lg"
                       />
                       <div className="absolute top-2 right-2 flex gap-1">
                         <ImageDownloadButton
@@ -664,6 +656,21 @@ export default function PromptEvaluator() {
               )}
             </Button>
           </div>
+
+          {/* Image Favorites - Only show after first generation */}
+          {hasGeneratedImages && (
+            <ImageFavorites
+              favorites={favorites}
+              onRemoveFavorite={removeFavorite}
+              onAnalyzeFavorites={analyzeFavorites}
+              onApplyFavoriteInsights={applyFavoriteInsights}
+            />
+          )}
+
+          {/* Custom Direction Input - Only show after first generation */}
+          {hasGeneratedImages && customCriteria && (
+            <CustomDirectionInput onApplyDirection={handleCustomDirection} isApplying={isImproving} />
+          )}
 
           {/* Selective Improvements Results */}
           {evaluationResult && (

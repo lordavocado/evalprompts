@@ -40,7 +40,7 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
         throw new Error('OpenAI keys should start with "sk-"')
       }
       
-      // Make a test call (this would be replaced with actual API validation)
+      // Make a test call to validate the API key
       const response = await fetch('/api/validate-openai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,16 +48,22 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
       })
       
       if (response.ok) {
+        const result = await response.json()
         setOpenaiValidation({ isValidating: false, isValid: true })
       } else {
-        const error = await response.text()
-        setOpenaiValidation({ isValidating: false, isValid: false, error })
+        const errorData = await response.json()
+        setOpenaiValidation({ 
+          isValidating: false, 
+          isValid: false, 
+          error: errorData.error || 'Failed to validate API key'
+        })
       }
     } catch (error: any) {
+      console.error('OpenAI validation error:', error)
       setOpenaiValidation({ 
         isValidating: false, 
         isValid: false, 
-        error: error.message || 'Invalid API key format'
+        error: error.message || 'Network error - please check your connection'
       })
     }
   }
@@ -68,13 +74,22 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
     setFalValidation({ isValidating: true })
     
     try {
-      // Simple validation: check if key format looks correct
+      // Enhanced validation: check if key format looks correct
       if (!key.startsWith('fal_')) {
         throw new Error('Fal AI keys should start with "fal_"')
       }
       
-      setFalValidation({ isValidating: false, isValid: true })
+      if (key.length < 20) {
+        throw new Error('Fal AI key appears to be too short')
+      }
+      
+      // Format validation passed
+      setFalValidation({ 
+        isValidating: false, 
+        isValid: true 
+      })
     } catch (error: any) {
+      console.error('Fal AI validation error:', error)
       setFalValidation({ 
         isValidating: false, 
         isValid: false, 
