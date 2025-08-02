@@ -79,8 +79,8 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
         throw new Error('Fal AI key appears to be too short')
       }
       
-      // Check if it contains valid characters (alphanumeric, hyphens, underscores)
-      if (!/^[a-zA-Z0-9_-]+$/.test(key)) {
+      // Check if it contains printable ASCII characters (excluding spaces)
+      if (!/^[!-~]+$/.test(key)) {
         throw new Error('Fal AI key contains invalid characters')
       }
       

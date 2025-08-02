@@ -53,7 +53,7 @@ export async function generateImages(
   }
 
   // Validate Fal AI key format
-  if (apiKeys.falKey.length < 10 || !/^[a-zA-Z0-9_-]+$/.test(apiKeys.falKey)) {
+  if (apiKeys.falKey.length < 10 || !/^[!-~]+$/.test(apiKeys.falKey)) {
     console.error("❌ Invalid Fal AI key format")
     console.log("Falling back to mock generation")
     return generateImagesMock(prompts, model)
