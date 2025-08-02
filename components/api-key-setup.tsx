@@ -74,13 +74,14 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
     setFalValidation({ isValidating: true })
     
     try {
-      // Enhanced validation: check if key format looks correct
-      if (!key.startsWith('fal_')) {
-        throw new Error('Fal AI keys should start with "fal_"')
+      // Basic validation: check if key format looks reasonable
+      if (key.length < 10) {
+        throw new Error('Fal AI key appears to be too short')
       }
       
-      if (key.length < 20) {
-        throw new Error('Fal AI key appears to be too short')
+      // Check if it contains valid characters (alphanumeric, hyphens, underscores)
+      if (!/^[a-zA-Z0-9_-]+$/.test(key)) {
+        throw new Error('Fal AI key contains invalid characters')
       }
       
       // Format validation passed
@@ -241,7 +242,7 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
                     setFalValidation({ isValidating: false }) // Reset validation on change
                   }}
                   onBlur={() => falKey.trim() && validateFalKey(falKey.trim())}
-                  placeholder="fal_..."
+                  placeholder="Enter your Fal AI key..."
                   className={`pr-16 ${
                     falValidation.isValid === false ? "border-mono-400 focus:border-mono-500 focus:ring-mono-500" : 
                     falValidation.isValid === true ? "border-mono-600 focus:border-mono-700 focus:ring-mono-700" : ""

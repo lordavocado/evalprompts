@@ -12,9 +12,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate Fal AI key format
-    if (!apiKey.startsWith('fal_')) {
+    if (apiKey.length < 10 || !/^[a-zA-Z0-9_-]+$/.test(apiKey)) {
       return NextResponse.json(
-        { error: 'Fal AI keys should start with "fal_"' },
+        { error: 'Invalid Fal AI key format' },
         { status: 400 }
       )
     }
