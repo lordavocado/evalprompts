@@ -14,8 +14,8 @@ export function CriteriaSelector({ selectedCriteria, onSelect }: CriteriaSelecto
   return (
     <div className="mb-8">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Choose Evaluation Criteria</h2>
-        <p className="text-gray-600">Select the evaluation framework that best matches your use case</p>
+        <h2 className="text-2xl font-bold text-mono-900 mb-2">Choose Evaluation Criteria</h2>
+        <p className="text-mono-600">Select the evaluation framework that best matches your use case</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -23,7 +23,7 @@ export function CriteriaSelector({ selectedCriteria, onSelect }: CriteriaSelecto
           <Card
             key={criteria.id}
             className={`cursor-pointer transition-all hover:shadow-lg ${
-              selectedCriteria.id === criteria.id ? "ring-2 ring-blue-500 bg-blue-50" : "hover:bg-gray-50"
+              selectedCriteria.id === criteria.id ? "ring-2 ring-mono-600 bg-mono-50" : "hover:bg-mono-50"
             }`}
             onClick={() => onSelect(criteria)}
           >
@@ -33,7 +33,7 @@ export function CriteriaSelector({ selectedCriteria, onSelect }: CriteriaSelecto
                   <span className="text-2xl">{criteria.icon}</span>
                   {criteria.name}
                 </div>
-                {selectedCriteria.id === criteria.id && <Check className="w-5 h-5 text-blue-600" />}
+                {selectedCriteria.id === criteria.id && <Check className="w-5 h-5 text-mono-700" />}
               </CardTitle>
               <CardDescription className="text-sm">{criteria.description}</CardDescription>
             </CardHeader>
@@ -41,7 +41,7 @@ export function CriteriaSelector({ selectedCriteria, onSelect }: CriteriaSelecto
               <div className="space-y-2">
                 {Object.entries(criteria.criteria).map(([key, criterion]) => (
                   <div key={key} className="flex items-center justify-between text-sm">
-                    <span className="text-gray-700">{criterion.name}</span>
+                    <span className="text-mono-700">{criterion.name}</span>
                     <Badge variant="outline" className="text-xs">
                       {Math.round(criterion.weight * 100)}%
                     </Badge>
@@ -54,7 +54,7 @@ export function CriteriaSelector({ selectedCriteria, onSelect }: CriteriaSelecto
       </div>
 
       {selectedCriteria && (
-        <Card className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50">
+        <Card className="mt-6 bg-mono-50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <span className="text-2xl">{selectedCriteria.icon}</span>

@@ -33,7 +33,7 @@ export function EvaluationResultsSection({
         if (line.match(/^\d+\./)) {
           return (
             <div key={index} className="flex items-start gap-2 mb-2">
-              <span className="font-semibold text-blue-600 min-w-[20px]">{line.match(/^\d+/)?.[0]}.</span>
+              <span className="font-semibold text-mono-800 min-w-[20px]">{line.match(/^\d+/)?.[0]}.</span>
               <span>{line.replace(/^\d+\.\s*/, "")}</span>
             </div>
           )
@@ -42,7 +42,7 @@ export function EvaluationResultsSection({
         if (line.match(/^[-•]\s/)) {
           return (
             <div key={index} className="flex items-start gap-2 mb-1">
-              <span className="text-blue-600 min-w-[10px]">•</span>
+              <span className="text-mono-800 min-w-[10px]">•</span>
               <span>{line.replace(/^[-•]\s*/, "")}</span>
             </div>
           )
@@ -84,7 +84,7 @@ export function EvaluationResultsSection({
           <CardDescription>Quick analysis based on your custom evaluation criteria</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-gray-700 leading-relaxed space-y-2">{formatText(evaluationResult.comparison)}</div>
+          <div className="text-mono-700 leading-relaxed space-y-2">{formatText(evaluationResult.comparison)}</div>
         </CardContent>
       </Card>
 
@@ -98,14 +98,14 @@ export function EvaluationResultsSection({
           <CardDescription>The prompt that scored highest on your criteria</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
-            <p className="text-green-800 font-medium leading-relaxed">{evaluationResult.bestPrompt}</p>
+          <div className="bg-mono-50 border border-mono-200 p-4 rounded-lg">
+            <p className="text-mono-800 font-medium leading-relaxed">{evaluationResult.bestPrompt}</p>
           </div>
         </CardContent>
       </Card>
 
       {/* Improvement Actions Section */}
-      <Card className="border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50">
+      <Card className="border-2 border-mono-300 bg-mono-50">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -116,7 +116,7 @@ export function EvaluationResultsSection({
               onClick={onApplyRecommendations}
               disabled={isApplyingRecommendations}
               size="sm"
-              className="bg-orange-600 hover:bg-orange-700"
+              className="bg-mono-900 hover:bg-mono-800 text-white"
             >
               {isApplyingRecommendations ? (
                 <>
@@ -139,17 +139,17 @@ export function EvaluationResultsSection({
         <CardContent>
           <div className="space-y-3">
             {evaluationResult.recommendations.map((rec, index) => (
-              <div key={index} className="flex items-start gap-3 p-4 bg-white rounded-lg border border-orange-200">
-                <div className="w-6 h-6 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
+              <div key={index} className="flex items-start gap-3 p-4 bg-white rounded-lg border border-mono-200">
+                <div className="w-6 h-6 bg-mono-800 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
                   {index + 1}
                 </div>
-                <div className="text-orange-900 leading-relaxed">{formatText(rec)}</div>
+                <div className="text-mono-900 leading-relaxed">{formatText(rec)}</div>
               </div>
             ))}
           </div>
 
-          <div className="mt-4 p-3 bg-orange-100 rounded-lg border border-orange-200">
-            <p className="text-sm text-orange-800">
+          <div className="mt-4 p-3 bg-mono-100 rounded-lg border border-mono-200">
+            <p className="text-sm text-mono-800">
               <strong>💡 How it works:</strong> Click "Apply Improvements" to let the AI rewrite your prompts based on
               these recommendations. This creates new, improved versions that you can then generate images from.
             </p>

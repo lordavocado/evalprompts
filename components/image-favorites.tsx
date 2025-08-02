@@ -56,7 +56,7 @@ export function ImageFavorites({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-mono-500">
             <Heart className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>No favorite images yet. Click the heart icon on generated images to save them here.</p>
           </div>
@@ -70,9 +70,9 @@ export function ImageFavorites({
   }
 
   const getScoreColor = (score: number) => {
-    if (score >= 8) return "text-green-600"
-    if (score >= 6) return "text-yellow-600"
-    return "text-red-600"
+    if (score >= 8) return "text-mono-900 font-semibold"
+    if (score >= 6) return "text-mono-700 font-medium"
+    return "text-mono-500"
   }
 
   const handleAnalyzeFavorites = async () => {
@@ -109,7 +109,7 @@ export function ImageFavorites({
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Heart className="w-5 h-5 text-red-500" />
+              <Heart className="w-5 h-5 text-mono-700" />
               Favorite Images ({favorites.length})
             </div>
             <div className="flex gap-2">
@@ -118,7 +118,7 @@ export function ImageFavorites({
                 onClick={handleAnalyzeFavorites}
                 disabled={favorites.length < 2}
                 size="sm"
-                className="bg-purple-600 hover:bg-purple-700"
+                className="bg-mono-900 hover:bg-mono-800 text-white"
               >
                 <Eye className="w-4 h-4 mr-2" />
                 Analyze Patterns
@@ -132,7 +132,7 @@ export function ImageFavorites({
               <Card
                 key={favorite.id}
                 className={`cursor-pointer transition-all hover:shadow-md ${
-                  selectedFavorites.includes(favorite.id) ? "ring-2 ring-purple-500" : ""
+                  selectedFavorites.includes(favorite.id) ? "ring-2 ring-mono-600" : ""
                 }`}
                 onClick={() => toggleSelection(favorite.id)}
               >
@@ -152,40 +152,40 @@ export function ImageFavorites({
                         onRemoveFavorite(favorite.id)
                       }}
                     >
-                      <Trash2 className="w-3 h-3 text-red-600" />
+                      <Trash2 className="w-3 h-3 text-mono-600" />
                     </Button>
                   </div>
                   {selectedFavorites.includes(favorite.id) && (
                     <div className="absolute top-2 left-2">
-                      <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center">
+                      <div className="w-6 h-6 bg-mono-900 rounded-full flex items-center justify-center">
                         <Star className="w-3 h-3 text-white" />
                       </div>
                     </div>
                   )}
                 </div>
                 <CardContent className="p-3">
-                  <p className="text-xs text-gray-600 line-clamp-2 mb-2">{favorite.prompt}</p>
+                  <p className="text-xs text-mono-600 line-clamp-2 mb-2">{favorite.prompt}</p>
                   {favorite.scores && (
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500">Overall Score:</span>
+                      <span className="text-xs text-mono-500">Overall Score:</span>
                       <Badge className={getScoreColor(favorite.scores.overall)} variant="outline">
                         {favorite.scores.overall.toFixed(1)}/10
                       </Badge>
                     </div>
                   )}
-                  <div className="text-xs text-gray-400 mt-2">{new Date(favorite.timestamp).toLocaleDateString()}</div>
+                  <div className="text-xs text-mono-400 mt-2">{new Date(favorite.timestamp).toLocaleDateString()}</div>
                 </CardContent>
               </Card>
             ))}
           </div>
 
           {favorites.length >= 2 && (
-            <div className="mt-4 p-4 bg-purple-50 rounded-lg">
+            <div className="mt-4 p-4 bg-mono-50 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
-                <Eye className="w-4 h-4 text-purple-600" />
-                <span className="font-medium text-purple-900">AI Pattern Analysis</span>
+                <Eye className="w-4 h-4 text-mono-700" />
+                <span className="font-medium text-mono-900">AI Pattern Analysis</span>
               </div>
-              <p className="text-sm text-purple-800">
+              <p className="text-sm text-mono-700">
                 The AI can analyze your favorite images to understand your preferences and improve future
                 recommendations. This helps optimize prompts based on what you actually like, not just theoretical
                 scores.

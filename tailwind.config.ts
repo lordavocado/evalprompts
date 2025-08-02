@@ -46,12 +46,37 @@ const config: Config = {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
-  			chart: {
-  				'1': 'hsl(var(--chart-1))',
-  				'2': 'hsl(var(--chart-2))',
-  				'3': 'hsl(var(--chart-3))',
-  				'4': 'hsl(var(--chart-4))',
-  				'5': 'hsl(var(--chart-5))'
+  			// Unified Grayscale System
+  			mono: {
+  				50: '#fafafa',   // lightest background
+  				100: '#f5f5f5',  // subtle background
+  				200: '#e5e5e5',  // borders, dividers
+  				300: '#d4d4d4',  // disabled elements
+  				400: '#a3a3a3',  // placeholder text
+  				500: '#737373',  // secondary text
+  				600: '#525252',  // primary text
+  				700: '#404040',  // headings
+  				800: '#262626',  // strong emphasis
+  				900: '#171717',  // maximum contrast
+  				950: '#0a0a0a'   // pure black alternative
+  			},
+  			// Status colors in grayscale
+  			status: {
+  				high: {
+  					DEFAULT: 'hsl(0 0% 9%)',      // dark gray for high priority/success
+  					foreground: 'hsl(0 0% 98%)',  // white text
+  					subtle: 'hsl(0 0% 97%)'       // very light background
+  				},
+  				medium: {
+  					DEFAULT: 'hsl(0 0% 40%)',     // medium gray for medium priority/warning
+  					foreground: 'hsl(0 0% 98%)',  // white text
+  					subtle: 'hsl(0 0% 95%)'       // light background
+  				},
+  				low: {
+  					DEFAULT: 'hsl(0 0% 60%)',     // lighter gray for low priority/neutral
+  					foreground: 'hsl(0 0% 98%)',  // white text
+  					subtle: 'hsl(0 0% 98%)'       // very light background
+  				}
   			},
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',

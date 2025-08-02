@@ -4,15 +4,8 @@ import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 import * as fal from "@fal-ai/serverless-client"
 
-// Configure Fal client with better error handling
-try {
-  fal.config({
-    credentials: process.env.FAL_KEY,
-  })
-  console.log("Fal AI configured successfully")
-} catch (error) {
-  console.error("Error configuring Fal AI:", error)
-}
+// Note: Fal AI configuration is now handled per-request with user-provided keys
+// This prevents production conflicts with environment variables
 
 interface PromptData {
   id: string
@@ -29,49 +22,15 @@ interface PromptData {
   iteration: number
 }
 
+// Note: This function is deprecated. Use generateImages from enhanced-actions.ts instead
+// which properly handles user-provided API keys and avoids production conflicts
 export async function generateImages(prompts: string[]): Promise<string[]> {
-  const imageUrls: string[] = []
-
-  for (const prompt of prompts) {
-    try {
-      console.log(`Generating image for prompt: ${prompt}`)
-
-      // Use a more reliable Fal AI endpoint and configuration
-      const result = (await fal.subscribe("fal-ai/flux-pro", {
-        input: {
-          prompt: prompt,
-          image_size: "square",
-          num_inference_steps: 28,
-          guidance_scale: 3.5,
-          num_images: 1,
-          enable_safety_checker: true,
-        },
-        logs: true,
-        onQueueUpdate: (update) => {
-          console.log("Queue update:", update)
-        },
-      })) as any
-
-      console.log("Fal AI result:", result)
-
-      if (result && result.images && result.images.length > 0) {
-        imageUrls.push(result.images[0].url)
-        console.log(`Successfully generated image: ${result.images[0].url}`)
-      } else {
-        console.log("No images in result, using placeholder")
-        imageUrls.push(`/placeholder.svg?height=400&width=400&query=${encodeURIComponent(prompt)}`)
-      }
-    } catch (error) {
-      console.error("Detailed error generating image:", error)
-      console.error("Error message:", error instanceof Error ? error.message : String(error))
-      console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace")
-
-      // Use placeholder on error
-      imageUrls.push(`/placeholder.svg?height=400&width=400&query=${encodeURIComponent(prompt)}`)
-    }
-  }
-
-  return imageUrls
+  console.warn("Deprecated: Use generateImages from enhanced-actions.ts instead")
+  
+  // Return placeholder images for all prompts
+  return prompts.map((prompt) => 
+    `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(prompt)}`
+  )
 }
 
 export async function evaluatePrompts(prompts: PromptData[]) {

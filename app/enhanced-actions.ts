@@ -43,7 +43,7 @@ export async function generateImages(
   onTrackUsage?: (modelId: string, imageCount: number) => void,
 ): Promise<string[]> {
   if (!apiKeys.falKey) {
-    console.log("FAL_KEY not provided, using mock generation")
+    console.log("Fal AI key not provided, using mock generation")
     return generateImagesMock(prompts, model)
   }
 
@@ -51,8 +51,10 @@ export async function generateImages(
   let successfulGenerations = 0
 
   try {
+    // Dynamically import Fal to avoid build issues
     const fal = await import("@fal-ai/serverless-client")
 
+    // Configure with user-provided key only
     fal.config({
       credentials: apiKeys.falKey,
     })
@@ -74,6 +76,8 @@ export async function generateImages(
         const result = (await fal.subscribe(model.endpoint, {
           input: parameters,
           logs: true,
+          pollInterval: 1000,
+          timeout: 60000, // 60 second timeout
         })) as any
 
         if (result && result.images && result.images.length > 0) {
@@ -84,8 +88,8 @@ export async function generateImages(
           console.log("No images in result, using placeholder")
           imageUrls.push(`/placeholder.svg?height=400&width=400&query=${encodeURIComponent(prompt)}`)
         }
-      } catch (error) {
-        console.error("Error generating individual image:", error)
+      } catch (error: any) {
+        console.error(`Error generating image for prompt "${prompt}":`, error?.message || error)
         imageUrls.push(`/placeholder.svg?height=400&width=400&query=${encodeURIComponent(prompt)}`)
       }
     }
@@ -94,13 +98,13 @@ export async function generateImages(
     if (onTrackUsage && successfulGenerations > 0) {
       onTrackUsage(model.endpoint, successfulGenerations)
     }
-  } catch (importError) {
-    console.error("Error importing Fal AI module:", importError)
+
+    return imageUrls
+  } catch (importError: any) {
+    console.error("Error with Fal AI service:", importError?.message || importError)
     console.log("Falling back to mock generation")
     return generateImagesMock(prompts, model)
   }
-
-  return imageUrls
 }
 
 // Apply custom direction to improve prompts
@@ -141,28 +145,33 @@ export async function applyCustomDirection(
         try {
           const { text: improvedPrompt } = await generateText({
             model,
-            prompt: `Improve this AI image prompt based on the user's specific direction:
+            prompt: `You are an expert AI prompt engineer. Your task is to improve an image generation prompt by integrating specific user instructions while maintaining quality and coherence.
 
-ORIGINAL PROMPT: "${prompt.text}"
+CURRENT PROMPT: "${prompt.text}"
 
-USER DIRECTION: "${direction}"
+USER'S CUSTOM INSTRUCTION: "${direction}"
 
-EVALUATION CRITERIA:
+EVALUATION FRAMEWORK:
 ${Object.entries(criteria.criteria)
-  .map(([key, criterion]) => `${criterion.name}: ${criterion.description}`)
+  .map(([key, criterion]) => `• ${criterion.name}: ${criterion.description} (Weight: ${Math.round(criterion.weight * 100)}%)`)
   .join("\n")}
 
-${favoriteInsights ? `USER PREFERENCES: ${favoriteInsights}` : ""}
+${favoriteInsights ? `USER PREFERENCE INSIGHTS: ${favoriteInsights}` : ""}
 
-Create an improved version that:
-1. Incorporates the user's specific direction as the primary focus
-2. Maintains the core creative concept
-3. Aligns with the evaluation criteria definitions
-4. Considers user preferences from favorite images
+OPTIMIZATION STRATEGY:
+1. **Primary Focus**: The user instruction "${direction}" must be the central theme of your improvements
+2. **Integration Method**: Don't just append the instruction - weave it naturally into the prompt structure
+3. **Quality Maintenance**: Ensure the prompt remains coherent and technically optimized for AI image generation
+4. **Criteria Alignment**: Balance the user instruction with the established evaluation criteria
+5. **User Preferences**: Apply any relevant patterns from the user's favorite images
 
-IMPORTANT: The user direction "${direction}" should be the main focus of the improvements.
+PROMPT ENGINEERING GUIDELINES:
+- Use specific, descriptive language that AI models respond well to
+- Maintain logical flow: subject → style/instruction → technical details → composition
+- Include relevant keywords that enhance the user's intended direction
+- Ensure the instruction is implemented through concrete, visual descriptions
 
-Return ONLY the improved prompt text, nothing else.`,
+Return ONLY the optimized prompt that seamlessly integrates the user instruction.`,
           })
 
           // Track usage for improvement
@@ -593,37 +602,41 @@ export async function improvePromptsSelectively(
         try {
           const { text: improvedPrompt } = await generateText({
             model,
-            prompt: `Improve this AI image prompt based on the specific evaluation criteria and selected improvements:
+            prompt: `You are an expert AI prompt engineer specializing in selective optimization. Your task is to enhance an image generation prompt by implementing specific improvements while maintaining its core identity.
 
-ORIGINAL PROMPT: "${prompt.text}"
+CURRENT PROMPT: "${prompt.text}"
 
-EVALUATION CRITERIA:
+EVALUATION FRAMEWORK:
 ${Object.entries(criteria.criteria)
-  .map(([key, criterion]) => `${criterion.name}: ${criterion.description}`)
+  .map(([key, criterion]) => `• ${criterion.name}: ${criterion.description} (Weight: ${Math.round(criterion.weight * 100)}%, Current: ${prompt.scores?.[key] || 0}/10)`)
   .join("\n")}
 
-CURRENT SCORES:
-${Object.entries(criteria.criteria)
-  .map(([key, criterion]) => `${criterion.name}: ${prompt.scores?.[key] || 0}/10`)
-  .join("\n")}
-Overall: ${prompt.scores?.overall?.toFixed(1) || 0}/10
+Overall Performance: ${prompt.scores?.overall?.toFixed(1) || 0}/10
 
 ${
   selectedRecommendations.length > 0
-    ? `SELECTED IMPROVEMENTS TO APPLY:
+    ? `TARGETED IMPROVEMENTS TO IMPLEMENT:
 ${selectedRecommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}`
     : ""
 }
 
-${favoriteInsights ? `USER PREFERENCES: ${favoriteInsights}` : ""}
+${favoriteInsights ? `USER PREFERENCE PATTERNS: ${favoriteInsights}` : ""}
 
-Create an improved version that:
-1. Addresses the selected improvement areas specifically
-2. Maintains the core creative concept
-3. Aligns with the evaluation criteria definitions
-4. Considers user preferences from favorite images
+OPTIMIZATION STRATEGY:
+1. **Selective Enhancement**: Focus only on the selected improvement areas
+2. **Score-Driven Approach**: Prioritize improvements for criteria with lower scores
+3. **Coherent Integration**: Weave improvements naturally into the prompt structure
+4. **Quality Preservation**: Maintain what already works well in the original prompt
+5. **User Alignment**: Apply improvements in ways that align with user preferences
 
-Return ONLY the improved prompt text, nothing else.`,
+PROMPT ENGINEERING GUIDELINES:
+- Address each selected improvement through specific, actionable changes
+- Use concrete visual descriptions rather than abstract concepts
+- Maintain proper prompt structure: subject → improvements → technical specs
+- Ensure improvements enhance rather than replace the core concept
+- Apply professional prompt engineering best practices
+
+Return ONLY the optimized prompt that implements the selected improvements.`,
           })
 
           // Track usage for improvement

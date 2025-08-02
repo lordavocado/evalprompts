@@ -53,9 +53,9 @@ export function FavoriteAnalysisModal({
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 space-y-4">
-            <Loader2 className="w-12 h-12 animate-spin text-purple-600" />
+            <Loader2 className="w-12 h-12 animate-spin text-mono-600" />
             <h3 className="text-lg font-semibold">Analyzing Your Favorites...</h3>
-            <p className="text-gray-600 text-center">
+            <p className="text-mono-600 text-center">
               Our AI is studying your favorite images to identify patterns and preferences
             </p>
           </div>
@@ -72,7 +72,7 @@ export function FavoriteAnalysisModal({
               </CardHeader>
               <CardContent>
                 <div className="prose max-w-none">
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">{analysis.analysis}</p>
+                  <p className="text-mono-700 leading-relaxed whitespace-pre-line">{analysis.analysis}</p>
                 </div>
               </CardContent>
             </Card>
@@ -92,12 +92,12 @@ export function FavoriteAnalysisModal({
                     {analysis.styleInsights.map((insight, index) => (
                       <div
                         key={index}
-                        className="flex items-start gap-3 p-4 bg-purple-50 rounded-lg border border-purple-100"
+                        className="flex items-start gap-3 p-4 bg-mono-50 rounded-lg border border-mono-200"
                       >
-                        <div className="w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
+                        <div className="w-6 h-6 bg-mono-800 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
                           {index + 1}
                         </div>
-                        <p className="text-purple-800 leading-relaxed">{insight}</p>
+                        <p className="text-mono-800 leading-relaxed">{insight}</p>
                       </div>
                     ))}
                   </div>
@@ -117,7 +117,7 @@ export function FavoriteAnalysisModal({
                     <Button
                       onClick={handleApplyToPrompts}
                       disabled={isApplying}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-mono-900 hover:bg-mono-800 text-white"
                     >
                       {isApplying ? (
                         <>
@@ -139,12 +139,12 @@ export function FavoriteAnalysisModal({
                     {analysis.recommendations.map((rec, index) => (
                       <div
                         key={index}
-                        className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-100"
+                        className="flex items-start gap-3 p-4 bg-mono-50 rounded-lg border border-mono-200"
                       >
-                        <div className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
+                        <div className="w-6 h-6 bg-mono-700 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">
                           {index + 1}
                         </div>
-                        <p className="text-green-800 leading-relaxed">{rec}</p>
+                        <p className="text-mono-800 leading-relaxed">{rec}</p>
                       </div>
                     ))}
                   </div>
@@ -166,7 +166,7 @@ export function FavoriteAnalysisModal({
                   <Button
                     onClick={handleApplyToPrompts}
                     disabled={isApplying}
-                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                    className="bg-mono-900 hover:bg-mono-800 text-white"
                   >
                     {isApplying ? (
                       <>
@@ -185,7 +185,7 @@ export function FavoriteAnalysisModal({
             </div>
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-mono-500">
             <p>No analysis available. Please try again.</p>
           </div>
         )}

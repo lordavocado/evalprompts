@@ -82,7 +82,7 @@ export function ImageDescriptionChat({ onComplete, apiKeys }: ImageDescriptionCh
                 className="min-h-[120px] resize-none"
                 disabled={isLoading}
               />
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-mono-600">
                 Be as specific as possible - mention style, purpose, audience, mood, and any technical requirements
               </p>
             </div>
@@ -91,7 +91,7 @@ export function ImageDescriptionChat({ onComplete, apiKeys }: ImageDescriptionCh
               onClick={handleSubmit}
               disabled={!description.trim() || isLoading}
               size="lg"
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className="w-full bg-mono-900 hover:bg-mono-800 text-white"
             >
               {isLoading ? (
                 <>
@@ -108,7 +108,7 @@ export function ImageDescriptionChat({ onComplete, apiKeys }: ImageDescriptionCh
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-700">Need inspiration? Try these examples:</h3>
+            <h3 className="text-sm font-medium text-mono-700">Need inspiration? Try these examples:</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {examplePrompts.map((prompt, index) => (
                 <Button

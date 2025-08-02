@@ -10,6 +10,7 @@ import { ApiKeySetup } from "@/components/api-key-setup"
 import { ImageDescriptionChat } from "@/components/image-description-chat"
 import { useSecureStorage } from "@/hooks/use-secure-storage"
 import { useUsageTracking } from "@/hooks/use-usage-tracking"
+import { usePromptHistory } from "@/hooks/use-prompt-history"
 import { generateCustomContent } from "./ai-actions"
 import {
   generateImages,
@@ -27,6 +28,8 @@ import { ImageFavorites } from "@/components/image-favorites"
 import { ImageDownloadButton } from "@/components/image-download-button"
 import { UsageStatsWidget } from "@/components/usage-stats-widget"
 import { UsageStatsModal } from "@/components/usage-stats-modal"
+import { EnhancedLoadingOverlay, LOADING_STEPS } from "@/components/enhanced-loading-overlay"
+import { PromptHistoryPanel, CompactPromptHistory } from "@/components/prompt-history-panel"
 import { SelectiveImprovementsSection } from "@/components/selective-improvements-section"
 import { PromptVariationSelector } from "@/components/prompt-variation-selector"
 import { CustomDirectionInput } from "@/components/custom-direction-input"
@@ -71,8 +74,27 @@ export default function PromptEvaluator() {
   const [isGeneratingContent, setIsGeneratingContent] = useState(false)
   const [showExplainer, setShowExplainer] = useState(true)
   const [showUsageModal, setShowUsageModal] = useState(false)
+  const [showImageGenerationOverlay, setShowImageGenerationOverlay] = useState(false)
+  const [showEvaluationOverlay, setShowEvaluationOverlay] = useState(false)
 
-  const [prompts, setPrompts] = useState<PromptData[]>([])
+  const {
+    prompts,
+    updatePrompts,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    currentEntry,
+    history,
+    navigateToEntry,
+    initialize,
+    addImageGeneration,
+    addEvaluation,
+    addImprovement,
+    addCustomDirection,
+    setPrompts
+  } = usePromptHistory()
+  
   const [isGenerating, setIsGenerating] = useState(false)
   const [isEvaluating, setIsEvaluating] = useState(false)
   const [isImproving, setIsImproving] = useState(false)
@@ -137,7 +159,7 @@ export default function PromptEvaluator() {
         iteration: 1,
       }))
 
-      setPrompts(initialPrompts)
+      initialize(initialPrompts, "Generated initial prompts from description")
       setCurrentStep("evaluation")
     } catch (error) {
       console.error("Error generating content:", error)
@@ -147,11 +169,14 @@ export default function PromptEvaluator() {
   }
 
   const updatePrompt = (id: string, text: string) => {
-    setPrompts((prev) => prev.map((p) => (p.id === id ? { ...p, text } : p)))
+    const newPrompts = prompts.map((p) => (p.id === id ? { ...p, text } : p))
+    setPrompts(newPrompts)
   }
 
   const handleGenerateImages = async () => {
     setIsGenerating(true)
+    setShowImageGenerationOverlay(true)
+    
     try {
       const results = await generateImages(
         prompts.map((p) => p.text),
@@ -160,12 +185,12 @@ export default function PromptEvaluator() {
         trackFalRequest,
       )
 
-      setPrompts((prev) =>
-        prev.map((p, index) => ({
-          ...p,
-          imageUrl: results[index],
-        })),
-      )
+      const promptsWithImages = prompts.map((p, index) => ({
+        ...p,
+        imageUrl: results[index],
+      }))
+      
+      addImageGeneration(promptsWithImages)
 
       const successCount = results.filter((url) => !url.includes("placeholder.svg")).length
       if (successCount === 0) {
@@ -178,6 +203,7 @@ export default function PromptEvaluator() {
       alert(`Error generating images: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setIsGenerating(false)
+      setShowImageGenerationOverlay(false)
     }
   }
 
@@ -188,15 +214,18 @@ export default function PromptEvaluator() {
     }
 
     setIsEvaluating(true)
+    setShowEvaluationOverlay(true)
+    
     try {
       const result = await evaluatePromptsWithCriteria(prompts, customCriteria, favorites, apiKeys, trackOpenAIRequest)
       setEvaluationResult(result)
-      setPrompts(result.prompts)
+      addEvaluation(result.prompts)
     } catch (error) {
       console.error("Error evaluating prompts:", error)
       alert(`Error evaluating prompts: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setIsEvaluating(false)
+      setShowEvaluationOverlay(false)
     }
   }
 
@@ -250,9 +279,8 @@ export default function PromptEvaluator() {
         trackOpenAIRequest,
       )
       const newIteration = currentIteration + 1
-      setPrompts(
-        improvedPrompts.map((p) => ({ ...p, iteration: newIteration, imageUrl: undefined, scores: undefined })),
-      )
+      const newPrompts = improvedPrompts.map((p) => ({ ...p, iteration: newIteration, imageUrl: undefined, scores: undefined }))
+      addImprovement(newPrompts, "favorite insights")
       setCurrentIteration(newIteration)
       setEvaluationResult(null)
     } catch (error) {
@@ -280,9 +308,8 @@ export default function PromptEvaluator() {
         trackOpenAIRequest,
       )
       const newIteration = currentIteration + 1
-      setPrompts(
-        improvedPrompts.map((p) => ({ ...p, iteration: newIteration, imageUrl: undefined, scores: undefined })),
-      )
+      const newPrompts = improvedPrompts.map((p) => ({ ...p, iteration: newIteration, imageUrl: undefined, scores: undefined }))
+      addImprovement(newPrompts, "selected improvements")
       setCurrentIteration(newIteration)
       setEvaluationResult(null)
     } catch (error) {
@@ -310,9 +337,8 @@ export default function PromptEvaluator() {
         trackOpenAIRequest,
       )
       const newIteration = currentIteration + 1
-      setPrompts(
-        improvedPrompts.map((p) => ({ ...p, iteration: newIteration, imageUrl: undefined, scores: undefined })),
-      )
+      const newPrompts = improvedPrompts.map((p) => ({ ...p, iteration: newIteration, imageUrl: undefined, scores: undefined }))
+      addCustomDirection(newPrompts, direction)
       setCurrentIteration(newIteration)
       setEvaluationResult(null)
     } catch (error) {
@@ -396,16 +422,12 @@ export default function PromptEvaluator() {
           title="Generating Custom Criteria | EvalPrompts AI Working..."
           description={`EvalPrompts AI is analyzing "${userDescription}" and generating personalized evaluation criteria with optimized prompts.`}
         />
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6">
-          <Card className="w-full max-w-2xl border-gray-200">
-            <CardContent className="flex flex-col items-center justify-center p-12 space-y-4">
-              <Loader2 className="w-12 h-12 animate-spin text-gray-900" />
-              <h2 className="text-2xl font-bold text-gray-900">EvalPrompts AI Working...</h2>
-              <p className="text-gray-600 text-center">
-                Analyzing your description and generating personalized criteria and optimized prompts...
-              </p>
-            </CardContent>
-          </Card>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+          <EnhancedLoadingOverlay
+            isVisible={true}
+            title="EvalPrompts AI Working"
+            steps={LOADING_STEPS.generateContent}
+          />
         </div>
       </>
     )
@@ -450,7 +472,7 @@ export default function PromptEvaluator() {
               AI-powered prompt evaluation and optimization for: <strong>"{userDescription}"</strong>
             </p>
 
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-4 mb-4">
               <Badge variant="outline" className="text-sm border-gray-300 text-gray-700">
                 <Sparkles className="w-4 h-4 mr-1" />
                 Iteration {currentIteration}
@@ -459,6 +481,17 @@ export default function PromptEvaluator() {
                 <TrendingUp className="w-4 h-4 mr-1" />
                 GPT-4o-mini Analysis
               </Badge>
+            </div>
+
+            {/* Compact History Controls */}
+            <div className="flex justify-center">
+              <CompactPromptHistory
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onUndo={undo}
+                onRedo={redo}
+                currentEntry={currentEntry}
+              />
             </div>
           </div>
 
@@ -483,6 +516,17 @@ export default function PromptEvaluator() {
             onRemoveFavorite={removeFavorite}
             onAnalyzeFavorites={analyzeFavorites}
             onApplyFavoriteInsights={applyFavoriteInsights}
+          />
+
+          {/* Prompt History Panel */}
+          <PromptHistoryPanel
+            history={history}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={undo}
+            onRedo={redo}
+            onNavigateToEntry={navigateToEntry}
+            className="mb-8"
           />
 
           {/* Custom Direction Input - Now positioned after images */}
@@ -637,6 +681,27 @@ export default function PromptEvaluator() {
             stats={stats}
             onReset={resetStats}
             recentRequests={getRecentRequests()}
+          />
+
+          {/* Enhanced Loading Overlays */}
+          <EnhancedLoadingOverlay
+            isVisible={showImageGenerationOverlay}
+            title="Generating Images"
+            steps={LOADING_STEPS.generateImages}
+            onCancel={() => {
+              setIsGenerating(false)
+              setShowImageGenerationOverlay(false)
+            }}
+          />
+
+          <EnhancedLoadingOverlay
+            isVisible={showEvaluationOverlay}
+            title="AI Evaluation in Progress"
+            steps={LOADING_STEPS.evaluation}
+            onCancel={() => {
+              setIsEvaluating(false)
+              setShowEvaluationOverlay(false)
+            }}
           />
 
           {/* Footer */}

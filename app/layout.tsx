@@ -92,8 +92,8 @@ export const metadata: Metadata = {
   referrer: "origin-when-cross-origin",
   colorScheme: "light",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#8b5cf6" },
-    { media: "(prefers-color-scheme: dark)", color: "#8b5cf6" },
+    { media: "(prefers-color-scheme: light)", color: "#171717" },
+    { media: "(prefers-color-scheme: dark)", color: "#171717" },
   ],
 
   // Additional structured data
@@ -102,7 +102,7 @@ export const metadata: Metadata = {
     "apple-mobile-web-app-status-bar-style": "default",
     "apple-mobile-web-app-title": "EvalPrompts",
     "mobile-web-app-capable": "yes",
-    "msapplication-TileColor": "#8b5cf6",
+    "msapplication-TileColor": "#171717",
     "msapplication-config": "/browserconfig.xml",
   },
 
@@ -112,14 +112,13 @@ export const metadata: Metadata = {
   // Icons - Updated with new favicon files
   icons: {
     icon: [
-      { url: "/favicon.png", type: "image/svg+xml" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.svg", sizes: "any", type: "image/svg+xml" },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/favicon.svg", sizes: "180x180", type: "image/svg+xml" }],
     other: [
-      { rel: "mask-icon", url: "/favicon.png", color: "#8b5cf6" },
-      { rel: "shortcut icon", url: "/favicon.png" },
+      { rel: "mask-icon", url: "/favicon.svg", color: "#171717" },
+      { rel: "shortcut icon", url: "/favicon.svg" },
     ],
   },
     generator: 'v0.dev'
@@ -178,11 +177,9 @@ export default function RootLayout({
         <meta name="rating" content="general" />
 
         {/* Favicon links */}
-        <link rel="icon" href="/favicon.png" type="image/svg+xml" />
-        <link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png" />
-        <link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="mask-icon" href="/favicon.png" color="#8b5cf6" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
+        <link rel="mask-icon" href="/favicon.svg" color="#171717" />
 
         {/* Preconnect to external domains for performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
