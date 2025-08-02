@@ -68,12 +68,13 @@ export async function generateImages(
     // Dynamically import Fal to avoid build issues
     const fal = await import("@fal-ai/serverless-client")
 
-    // Configure with user-provided key only
+    // Configure with user-provided key using modern approach
     fal.config({
       credentials: apiKeys.falKey,
     })
     
     console.log("✅ Fal AI client configured successfully")
+    console.log("🔑 Using Fal API key:", apiKeys.falKey.substring(0, 8) + "...")
 
     for (let i = 0; i < prompts.length; i++) {
       const prompt = prompts[i]
@@ -81,27 +82,51 @@ export async function generateImages(
         console.log(`🖼️ [${i + 1}/${prompts.length}] Generating image with ${model.name}`)
         console.log(`📝 Prompt: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`)
 
-        // Use model-specific parameters
+        // Use model-specific parameters based on Fal.ai API spec
         const parameters = {
           prompt: prompt,
-          image_size: "square",
+          aspect_ratio: "1:1", // Use aspect_ratio instead of image_size
           num_inference_steps: model.parameters?.num_inference_steps?.[1] || 28,
           guidance_scale: model.parameters?.guidance_scale?.[1] || 3.5,
           num_images: 1,
           enable_safety_checker: true,
+          output_format: "jpeg", // Specify output format
+          sync_mode: false, // Async by default for better performance
         }
 
         console.log("⚙️ Parameters:", JSON.stringify(parameters, null, 2))
         console.log(`🌐 Endpoint: ${model.endpoint}`)
 
-        const result = (await fal.subscribe(model.endpoint, {
-          input: parameters,
-          logs: true,
-          pollInterval: 1000,
-          timeout: 60000, // 60 second timeout
-        })) as any
+        let result: any = null
+        let usedEndpoint = model.endpoint
 
-        console.log("📨 Fal AI Response:", JSON.stringify(result, null, 2))
+        try {
+          // Try the primary endpoint first
+          result = await fal.subscribe(model.endpoint, {
+            input: parameters,
+            logs: true,
+            pollInterval: 1000,
+            timeout: 60000, // 60 second timeout
+          })
+        } catch (endpointError: any) {
+          console.warn(`⚠️ Primary endpoint ${model.endpoint} failed:`, endpointError.message)
+          
+          // Fallback to flux/dev if the current endpoint fails
+          if (model.endpoint !== "fal-ai/flux/dev") {
+            console.log("🔄 Falling back to fal-ai/flux/dev endpoint...")
+            usedEndpoint = "fal-ai/flux/dev"
+            result = await fal.subscribe("fal-ai/flux/dev", {
+              input: parameters,
+              logs: true,
+              pollInterval: 1000,
+              timeout: 60000,
+            })
+          } else {
+            throw endpointError // Re-throw if even the fallback fails
+          }
+        }
+
+        console.log(`📨 Fal AI Response from ${usedEndpoint}:`, JSON.stringify(result, null, 2))
 
         if (result && result.images && result.images.length > 0) {
           imageUrls.push(result.images[0].url)
