@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Sparkles, TrendingUp, Eye, Settings, ArrowLeft, Heart, BarChart3 } from "lucide-react"
+import { Loader2, Sparkles, TrendingUp, Eye, Settings, ArrowLeft, Heart, BarChart3, Wand2 } from "lucide-react"
 import { ApiKeySetup } from "@/components/api-key-setup"
 import { ImageDescriptionChat } from "@/components/image-description-chat"
 import { useSecureStorage } from "@/hooks/use-secure-storage"
@@ -76,6 +76,7 @@ export default function PromptEvaluator() {
   const [showUsageModal, setShowUsageModal] = useState(false)
   const [showImageGenerationOverlay, setShowImageGenerationOverlay] = useState(false)
   const [showEvaluationOverlay, setShowEvaluationOverlay] = useState(false)
+  const [showImprovePrompts, setShowImprovePrompts] = useState(false)
 
   const {
     prompts,
@@ -198,8 +199,6 @@ export default function PromptEvaluator() {
       
       addImageGeneration(promptsWithImages)
       setHasGeneratedImages(true)
-
-      const successCount = results.filter((url) => !url.includes("placeholder.svg")).length
       if (successCount === 0) {
         alert("Image generation failed for all prompts. Using placeholders for demonstration.")
       } else if (successCount < results.length) {
@@ -351,6 +350,37 @@ export default function PromptEvaluator() {
     } catch (error) {
       console.error("Error applying custom direction:", error)
       alert(`Error applying direction: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      setIsImproving(false)
+    }
+  }
+
+  const handleImprovePrompts = async () => {
+    if (!customCriteria) {
+      alert("Please set up evaluation criteria first")
+      return
+    }
+
+    setIsImproving(true)
+    try {
+      // Use AI to improve prompts based on current images and evaluation
+      const improvedPrompts = await improvePromptsSelectively(
+        prompts,
+        ["visual_analysis", "composition", "quality", "adherence"],
+        customCriteria,
+        favorites,
+        apiKeys,
+        trackOpenAIRequest,
+      )
+      const newIteration = currentIteration + 1
+      const newPrompts = improvedPrompts.map((p) => ({ ...p, iteration: newIteration, imageUrl: undefined, scores: undefined }))
+      addImprovement(newPrompts, "AI image analysis")
+      setCurrentIteration(newIteration)
+      setEvaluationResult(null)
+      setShowImprovePrompts(false)
+    } catch (error) {
+      console.error("Error improving prompts:", error)
+      alert(`Error improving prompts: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setIsImproving(false)
     }
@@ -658,6 +688,17 @@ export default function PromptEvaluator() {
                 </>
               )}
             </Button>
+
+            <Button
+              onClick={() => setShowImprovePrompts(true)}
+              disabled={!prompts.every((p) => p.imageUrl && p.scores)}
+              size="lg"
+              variant="outline"
+              className="border-mono-600 text-mono-800 hover:bg-mono-100 bg-white"
+            >
+              <Wand2 className="w-4 h-4 mr-2" />
+              Improve Prompts
+            </Button>
           </div>
 
           {/* Image Favorites - Only show after first generation */}
@@ -682,6 +723,89 @@ export default function PromptEvaluator() {
               onApplyImprovements={handleSelectiveImprovements}
               isApplyingImprovements={isImproving}
             />
+          )}
+
+          {/* Improve Prompts Modal */}
+          {showImprovePrompts && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-semibold text-mono-900">Improve Your Prompts</h2>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setShowImprovePrompts(false)}
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    <div className="text-sm text-mono-600">
+                      AI analysis of your generated images and suggestions for improvement:
+                    </div>
+                    
+                    {prompts.map((prompt) => (
+                      <Card key={prompt.id} className="border-mono-200">
+                        <CardContent className="p-4">
+                          <div className="flex gap-4">
+                            {prompt.imageUrl && (
+                              <img
+                                src={prompt.imageUrl}
+                                alt="Generated image"
+                                className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
+                              />
+                            )}
+                            <div className="flex-1 space-y-2">
+                              <p className="text-sm font-medium text-mono-900">
+                                Current: "{prompt.text}"
+                              </p>
+                              {prompt.scores && (
+                                <p className="text-xs text-mono-600">
+                                  Overall Score: {prompt.scores.overall}/10
+                                </p>
+                              )}
+                              {prompt.feedback && (
+                                <p className="text-xs text-mono-600 bg-mono-50 p-2 rounded">
+                                  {prompt.feedback}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                    
+                    <div className="flex gap-3 justify-end">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowImprovePrompts(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleImprovePrompts}
+                        disabled={isImproving}
+                        className="bg-mono-900 hover:bg-mono-800 text-white"
+                      >
+                        {isImproving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Improving...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-4 h-4 mr-2" />
+                            Apply AI Improvements
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Usage Stats Modal */}

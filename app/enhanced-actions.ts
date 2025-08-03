@@ -664,6 +664,14 @@ export async function improvePromptsSelectively(
             prompt: `You are an expert AI prompt engineer specializing in selective optimization. Your task is to enhance an image generation prompt by implementing specific improvements while maintaining its core identity.
 
 CURRENT PROMPT: "${prompt.text}"
+GENERATED IMAGE: ${prompt.imageUrl}
+
+VISUAL ANALYSIS:
+First, analyze the generated image carefully. Consider:
+- How well does the image match the intended prompt?
+- What visual elements are successful or missing?
+- Are there composition, lighting, or quality issues?
+- How does the visual result inform potential improvements?
 
 EVALUATION FRAMEWORK:
 ${Object.entries(criteria.criteria)
@@ -682,18 +690,21 @@ ${selectedRecommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}`
 ${favoriteInsights ? `USER PREFERENCE PATTERNS: ${favoriteInsights}` : ""}
 
 OPTIMIZATION STRATEGY:
-1. **Selective Enhancement**: Focus only on the selected improvement areas
-2. **Score-Driven Approach**: Prioritize improvements for criteria with lower scores
-3. **Coherent Integration**: Weave improvements naturally into the prompt structure
-4. **Quality Preservation**: Maintain what already works well in the original prompt
-5. **User Alignment**: Apply improvements in ways that align with user preferences
+1. **Visual-Informed Enhancement**: Base improvements on both the text prompt and actual visual results
+2. **Selective Enhancement**: Focus only on the selected improvement areas
+3. **Score-Driven Approach**: Prioritize improvements for criteria with lower scores
+4. **Image-Text Alignment**: Address gaps between prompt intent and visual outcome
+5. **Quality Preservation**: Maintain what already works well in both prompt and image
+6. **User Alignment**: Apply improvements in ways that align with user preferences
 
 PROMPT ENGINEERING GUIDELINES:
-- Address each selected improvement through specific, actionable changes
+- Analyze the visual result to identify specific areas for improvement
+- Address gaps between the prompt's intent and the generated image
 - Use concrete visual descriptions rather than abstract concepts
+- Add specific technical terms that could improve image quality/composition
 - Maintain proper prompt structure: subject → improvements → technical specs
 - Ensure improvements enhance rather than replace the core concept
-- Apply professional prompt engineering best practices
+- Apply professional prompt engineering best practices informed by visual analysis
 
 Return ONLY the optimized prompt that implements the selected improvements.`,
           })
