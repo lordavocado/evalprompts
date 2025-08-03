@@ -35,9 +35,14 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
     setOpenaiValidation({ isValidating: true })
     
     try {
-      // Simple validation: check if key format looks correct
-      if (!key.startsWith('sk-')) {
-        throw new Error('OpenAI keys should start with "sk-"')
+      // Basic validation: check if key format looks reasonable
+      if (key.length < 10) {
+        throw new Error('OpenAI key appears to be too short')
+      }
+      
+      // Check if it contains printable ASCII characters (excluding spaces)
+      if (!/^[!-~]+$/.test(key)) {
+        throw new Error('OpenAI key contains invalid characters')
       }
       
       // Make a test call to validate the API key
@@ -186,7 +191,7 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
                     setOpenaiValidation({ isValidating: false }) // Reset validation on change
                   }}
                   onBlur={() => openaiKey.trim() && validateOpenAIKey(openaiKey.trim())}
-                  placeholder="sk-..."
+                  placeholder="Enter your OpenAI key..."
                   className={`pr-16 ${
                     openaiValidation.isValid === false ? "border-mono-400 focus:border-mono-500 focus:ring-mono-500" : 
                     openaiValidation.isValid === true ? "border-mono-600 focus:border-mono-700 focus:ring-mono-700" : ""

@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate OpenAI API key format
-    if (!apiKey.startsWith('sk-')) {
+    if (apiKey.length < 10 || !/^[!-~]+$/.test(apiKey)) {
       return NextResponse.json(
-        { error: 'OpenAI keys should start with "sk-"' },
+        { error: 'Invalid OpenAI key format' },
         { status: 400 }
       )
     }
