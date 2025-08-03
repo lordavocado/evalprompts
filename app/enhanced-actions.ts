@@ -40,7 +40,6 @@ export async function generateImages(
   prompts: string[],
   model: FluxModel,
   apiKeys: { openaiKey?: string; falKey?: string },
-  onTrackUsage?: (modelId: string, imageCount: number) => void,
 ): Promise<string[]> {
   console.log("🎨 Starting image generation...")
   console.log("Model:", model.name)
@@ -148,10 +147,7 @@ export async function generateImages(
       }
     }
 
-    // Track successful generations
-    if (onTrackUsage && successfulGenerations > 0) {
-      onTrackUsage(model.endpoint, successfulGenerations)
-    }
+    // Note: Usage tracking is handled client-side to avoid server/client reference issues
 
     console.log(`🎯 Generation Summary: ${successfulGenerations}/${prompts.length} successful`)
     

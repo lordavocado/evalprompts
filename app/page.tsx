@@ -183,8 +183,13 @@ export default function PromptEvaluator() {
         prompts.map((p) => p.text),
         selectedFluxModel,
         apiKeys,
-        trackFalRequest,
       )
+      
+      // Track usage client-side after successful generation
+      const successCount = results.filter((url) => !url.includes("placeholder.svg")).length
+      if (successCount > 0) {
+        trackFalRequest(selectedFluxModel.endpoint, successCount)
+      }
 
       const promptsWithImages = prompts.map((p, index) => ({
         ...p,

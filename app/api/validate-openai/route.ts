@@ -23,14 +23,13 @@ export async function POST(request: NextRequest) {
 
     // Test the API key with a minimal request
     try {
-      const model = openai("gpt-4o-mini", {
-        apiKey: apiKey.trim(),
-      })
+      const model = openai("gpt-4o-mini")
 
       await generateText({
         model,
         prompt: "Test",
         maxTokens: 1,
+        apiKey: apiKey.trim(),
       })
 
       return NextResponse.json({ 
