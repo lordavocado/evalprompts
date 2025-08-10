@@ -1,7 +1,7 @@
 "use server"
 
 import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
+import { createOpenAI } from "@ai-sdk/openai"
 
 interface PromptData {
   id: string
@@ -88,7 +88,7 @@ export async function generateImages(prompts: string[]): Promise<string[]> {
 }
 
 export async function evaluatePrompts(prompts: PromptData[]) {
-  const model = openai("gpt-5-mini")
+  const model = createOpenAI()("gpt-5-mini" as any)
 
   // Evaluate each prompt individually
   const evaluatedPrompts = await Promise.all(
@@ -220,7 +220,7 @@ Provide actionable, specific recommendations.`,
 }
 
 export async function refinePrompts(prompts: PromptData[]): Promise<PromptData[]> {
-  const model = openai("gpt-5-mini")
+  const model = createOpenAI()("gpt-5-mini" as any)
 
   const refinedPrompts = await Promise.all(
     prompts.map(async (prompt) => {

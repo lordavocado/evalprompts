@@ -1,7 +1,7 @@
 "use server"
 
 import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
+import { createOpenAI } from "@ai-sdk/openai"
 import type { EvaluationCriteria } from "@/types/evaluation-criteria"
 
 interface GeneratedContent {
@@ -148,9 +148,8 @@ export async function generateCustomContent(
   }
 
   try {
-    const model = openai("gpt-5-mini", {
-      apiKey: apiKeys.openaiKey,
-    })
+    const oai = createOpenAI({ apiKey: apiKeys.openaiKey })
+    const model = oai("gpt-5-mini" as any)
 
     // Test API availability
     try {

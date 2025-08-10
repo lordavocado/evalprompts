@@ -1,7 +1,7 @@
 "use server"
 
 import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
+import { createOpenAI } from "@ai-sdk/openai"
 import type { EvaluationCriteria } from "@/types/evaluation-criteria"
 import type { FluxModel } from "@/types/flux-models"
 
@@ -190,9 +190,8 @@ export async function applyCustomDirection(
   }
 
   try {
-    const model = openai("gpt-5-mini", {
-      apiKey: apiKeys.openaiKey,
-    })
+    const oai = createOpenAI({ apiKey: apiKeys.openaiKey })
+    const model = oai("gpt-5-mini" as any)
 
     // Get favorite patterns if available
     let favoriteInsights = ""
@@ -346,10 +345,9 @@ export async function evaluatePromptsWithCriteria(
   }
 
   try {
-    // Use GPT-4o-mini for image analysis and evaluation
-    const model = openai("gpt-5-mini", {
-      apiKey: apiKeys.openaiKey,
-    })
+    // Use GPT-5-mini for image analysis and evaluation
+    const oai = createOpenAI({ apiKey: apiKeys.openaiKey })
+    const model = oai("gpt-5-mini" as any)
 
     // Test API availability
     try {
@@ -571,9 +569,8 @@ export async function analyzeFavoritePatterns(
   }
 
   try {
-    const model = openai("gpt-5-mini", {
-      apiKey: apiKeys.openaiKey,
-    })
+    const oai = createOpenAI({ apiKey: apiKeys.openaiKey })
+    const model = oai("gpt-5-mini" as any)
 
     const { text: analysisText } = await generateText({
       model,
@@ -647,9 +644,8 @@ export async function improvePromptsSelectively(
   }
 
   try {
-    const model = openai("gpt-5-mini", {
-      apiKey: apiKeys.openaiKey,
-    })
+    const oai = createOpenAI({ apiKey: apiKeys.openaiKey })
+    const model = oai("gpt-5-mini" as any)
 
     // Get favorite patterns if available
     let favoriteInsights = ""

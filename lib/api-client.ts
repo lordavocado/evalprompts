@@ -1,7 +1,7 @@
 "use server"
 
 import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
+import { createOpenAI } from "@ai-sdk/openai"
 
 interface ApiKeys {
   openaiKey?: string
@@ -42,9 +42,8 @@ export class ApiClient {
     // Test OpenAI key
     if (this.apiKeys.openaiKey) {
       try {
-        const model = openai("gpt-5-nano", {
-          apiKey: this.apiKeys.openaiKey,
-        })
+        const oai = createOpenAI({ apiKey: this.apiKeys.openaiKey })
+        const model = oai("gpt-5-nano" as any)
         
         await generateText({
           model,
@@ -89,9 +88,8 @@ export class ApiClient {
     }
 
     try {
-      const model = openai("gpt-5-mini", {
-        apiKey: this.apiKeys.openaiKey,
-      })
+      const oai = createOpenAI({ apiKey: this.apiKeys.openaiKey })
+      const model = oai("gpt-5-mini" as any)
 
       const { text } = await generateText({
         model,

@@ -114,7 +114,7 @@ export default function PromptEvaluator() {
     if (currentStep === "evaluation" && userDescription) {
       return {
         title: `EvalPrompts - Optimizing "${userDescription}" | AI Prompt Evaluation`,
-        description: `Currently optimizing AI prompts for "${userDescription}" using advanced evaluation criteria and GPT-4o-mini analysis. Iteration ${currentIteration} in progress.`,
+        description: `Currently optimizing AI prompts for "${userDescription}" using advanced evaluation criteria and GPT-5-mini analysis. Iteration ${currentIteration} in progress.`,
       }
     }
 
@@ -541,7 +541,7 @@ export default function PromptEvaluator() {
                 canRedo={canRedo}
                 onUndo={undo}
                 onRedo={redo}
-                currentEntry={currentEntry}
+                currentEntry={currentEntry ?? undefined}
               />
             </div>
           </div>

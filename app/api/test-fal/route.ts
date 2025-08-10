@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
       console.log("Testing with parameters:", testParameters)
 
-      const result = await fal.subscribe(endpoint, {
+      const result: any = await fal.subscribe(endpoint, {
         input: testParameters,
         logs: true,
         pollInterval: 1000,

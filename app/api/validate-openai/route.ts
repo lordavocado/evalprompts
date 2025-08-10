@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
+import { createOpenAI } from "@ai-sdk/openai"
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,13 +23,13 @@ export async function POST(request: NextRequest) {
 
     // Test the API key with a minimal request
     try {
-      const model = openai("gpt-5-nano")
+      const oai = createOpenAI({ apiKey: apiKey.trim() })
+      const model = oai("gpt-5-nano" as any)
 
       await generateText({
         model,
         prompt: "Test",
         maxTokens: 1,
-        apiKey: apiKey.trim(),
       })
 
       return NextResponse.json({ 

@@ -68,7 +68,7 @@ export function useUsageTracking() {
     const costPerImage = PRICING.fal[modelKey] || PRICING.fal["flux-dev"]
     const totalCost = costPerImage * imageCount
 
-    setStats((prev) => ({
+    setStats((prev): UsageStats => ({
       ...prev,
       falRequests: prev.falRequests + imageCount,
       totalCost: prev.totalCost + totalCost,
@@ -77,7 +77,7 @@ export function useUsageTracking() {
         ...prev.requestHistory,
         {
           timestamp: Date.now(),
-          service: "fal",
+          service: "fal" as const,
           cost: totalCost,
           type: `${modelKey} (${imageCount} image${imageCount > 1 ? "s" : ""})`,
         },
@@ -90,7 +90,7 @@ export function useUsageTracking() {
     const costPer1K = (PRICING.openai as any)[key] || (PRICING.openai as any)["gpt-5-mini"]
     const totalCost = (estimatedTokens / 1000) * costPer1K
 
-    setStats((prev) => ({
+    setStats((prev): UsageStats => ({
       ...prev,
       openaiRequests: prev.openaiRequests + 1,
       totalCost: prev.totalCost + totalCost,
@@ -99,7 +99,7 @@ export function useUsageTracking() {
         ...prev.requestHistory,
         {
           timestamp: Date.now(),
-          service: "openai",
+          service: "openai" as const,
           cost: totalCost,
           type: `${key} (~${estimatedTokens} tokens)`,
         },
