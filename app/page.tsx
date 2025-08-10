@@ -31,7 +31,7 @@ import { UsageStatsModal } from "@/components/usage-stats-modal"
 import { EnhancedLoadingOverlay, LOADING_STEPS } from "@/components/enhanced-loading-overlay"
 import { PromptHistoryPanel, CompactPromptHistory } from "@/components/prompt-history-panel"
 import { SelectiveImprovementsSection } from "@/components/selective-improvements-section"
-import { PromptVariationSelector } from "@/components/prompt-variation-selector"
+
 import { CustomDirectionInput } from "@/components/custom-direction-input"
 import { FLUX_MODELS, getModelRecommendations, type FluxModel } from "@/types/flux-models"
 
@@ -447,8 +447,12 @@ export default function PromptEvaluator() {
         <SEOHead {...seoProps} />
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
           <div className="max-w-4xl mx-auto">
-            <PromptVariationSelector selectedMode={variationMode} onModeChange={setVariationMode} />
-            <ImageDescriptionChat onComplete={handleDescriptionComplete} apiKeys={apiKeys} />
+            <ImageDescriptionChat
+              onComplete={handleDescriptionComplete}
+              apiKeys={apiKeys}
+              variationMode={variationMode}
+              onVariationModeChange={setVariationMode}
+            />
           </div>
         </div>
       </>
