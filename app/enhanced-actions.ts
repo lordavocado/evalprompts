@@ -391,7 +391,7 @@ Provide 2-3 sentences about visual patterns and preferences.`,
       }
     }
 
-    // Evaluate each prompt individually using GPT-4o-mini with custom criteria
+    // Evaluate each prompt individually using GPT-5-mini with custom criteria
     const evaluatedPrompts = await Promise.all(
       prompts.map(async (prompt) => {
         const criteriaDescriptions = Object.entries(criteria.criteria)
@@ -471,7 +471,7 @@ Respond with ONLY valid JSON (no markdown):
       }),
     )
 
-    // Generate comparative analysis using GPT-4o-mini
+    // Generate comparative analysis using GPT-5-mini
     try {
       const { text: comparison } = await generateText({
         model,
@@ -497,7 +497,7 @@ Which performed best and why? Focus on the custom criteria performance.`,
         (current.scores?.overall || 0) > (best.scores?.overall || 0) ? current : best,
       )
 
-      // Generate actionable recommendations using GPT-4o-mini
+      // Generate actionable recommendations using GPT-5-mini
       const { text: recommendationsText } = await generateText({
         model,
         prompt: `Based on the evaluation results, provide 5 specific, actionable recommendations to improve the prompts:
