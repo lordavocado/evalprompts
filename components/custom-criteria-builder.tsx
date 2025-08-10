@@ -93,22 +93,27 @@ export function CustomCriteriaBuilder({ onSave, existingCriteria, isEditing = fa
   const handleSave = () => {
     if (!isValidForm) return
 
+    // Auto-normalize weights to sum to 1.0
+    const sum = criteria.reduce((acc, c) => acc + (c.weight / 100), 0)
+    const normalizedCriteriaMap = criteria.reduce(
+      (acc, c) => {
+        const normalizedWeight = sum > 0 ? (c.weight / 100) / sum : 0
+        acc[c.id] = {
+          name: c.name,
+          description: c.description,
+          weight: normalizedWeight,
+        }
+        return acc
+      },
+      {} as Record<string, { name: string; description: string; weight: number }>,
+    )
+
     const customCriteria: EvaluationCriteria = {
       id: existingCriteria?.id || `custom_${Date.now()}`,
       name,
       description,
       icon,
-      criteria: criteria.reduce(
-        (acc, c) => {
-          acc[c.id] = {
-            name: c.name,
-            description: c.description,
-            weight: c.weight / 100,
-          }
-          return acc
-        },
-        {} as Record<string, { name: string; description: string; weight: number }>,
-      ),
+      criteria: normalizedCriteriaMap,
       evaluationPrompt: `Evaluate this prompt focusing on custom criteria:
 ${criteria.map((c, i) => `${i + 1}. ${c.name} (1-10): ${c.description}`).join("\n")}`,
       suggestionFocus,

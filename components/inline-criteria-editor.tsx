@@ -24,6 +24,7 @@ export function InlineCriteriaEditor({ criteria, onUpdate }: InlineCriteriaEdito
   const criteriaEntries = Object.entries(editedCriteria.criteria)
   const totalWeight = criteriaEntries.reduce((sum, [, criterion]) => sum + criterion.weight, 0)
   const isValidWeight = Math.abs(totalWeight - 1.0) < 0.01
+  const autoNormalized = !isValidWeight
 
   const updateCriterion = (key: string, field: "name" | "description" | "weight", value: string | number) => {
     setEditedCriteria((prev) => ({
@@ -49,10 +50,19 @@ export function InlineCriteriaEditor({ criteria, onUpdate }: InlineCriteriaEdito
   }
 
   const handleSave = () => {
-    if (isValidWeight) {
-      onUpdate(editedCriteria)
-      setIsEditing(false)
+    let normalized = editedCriteria
+    if (!isValidWeight) {
+      // Auto-normalize weights to sum to 1.0
+      const sum = Object.values(editedCriteria.criteria).reduce((acc, c) => acc + c.weight, 0)
+      if (sum > 0) {
+        const normalizedCriteria = Object.fromEntries(
+          Object.entries(editedCriteria.criteria).map(([key, c]) => [key, { ...c, weight: c.weight / sum }])
+        )
+        normalized = { ...editedCriteria, criteria: normalizedCriteria }
+      }
     }
+    onUpdate(normalized)
+    setIsEditing(false)
   }
 
   const handleCancel = () => {

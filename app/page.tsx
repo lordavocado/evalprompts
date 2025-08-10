@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Sparkles, TrendingUp, Eye, Settings, ArrowLeft, Heart, BarChart3, Wand2, Info } from "lucide-react"
+import { Loader2, Sparkles, TrendingUp, Eye, Settings, ArrowLeft, Heart, BarChart3, Info } from "lucide-react"
 import { ApiKeySetup } from "@/components/api-key-setup"
 import { ImageDescriptionChat } from "@/components/image-description-chat"
 import { useSecureStorage } from "@/hooks/use-secure-storage"
@@ -28,7 +28,7 @@ import { ImageFavorites } from "@/components/image-favorites"
 import { ImageDownloadButton } from "@/components/image-download-button"
 import { UsageStatsWidget } from "@/components/usage-stats-widget"
 import { UsageStatsModal } from "@/components/usage-stats-modal"
-import { EnhancedLoadingOverlay, LOADING_STEPS } from "@/components/enhanced-loading-overlay"
+import { Progress } from "@/components/ui/progress"
 import { PromptHistoryPanel, CompactPromptHistory } from "@/components/prompt-history-panel"
 import { SelectiveImprovementsSection } from "@/components/selective-improvements-section"
 import { PromptVariationSelector } from "@/components/prompt-variation-selector"
@@ -74,9 +74,6 @@ export default function PromptEvaluator() {
   const [isGeneratingContent, setIsGeneratingContent] = useState(false)
   const [showExplainer, setShowExplainer] = useState(true)
   const [showUsageModal, setShowUsageModal] = useState(false)
-  const [showImageGenerationOverlay, setShowImageGenerationOverlay] = useState(false)
-  const [showEvaluationOverlay, setShowEvaluationOverlay] = useState(false)
-  const [showImprovePrompts, setShowImprovePrompts] = useState(false)
 
   const {
     prompts,
@@ -179,7 +176,7 @@ export default function PromptEvaluator() {
 
   const handleGenerateImages = async () => {
     setIsGenerating(true)
-    setShowImageGenerationOverlay(true)
+    // overlay removed
     
     try {
       const results = await generateImages(
@@ -211,7 +208,6 @@ export default function PromptEvaluator() {
       alert(`Error generating images: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setIsGenerating(false)
-      setShowImageGenerationOverlay(false)
     }
   }
 
@@ -222,7 +218,7 @@ export default function PromptEvaluator() {
     }
 
     setIsEvaluating(true)
-    setShowEvaluationOverlay(true)
+    // overlay removed
     
     try {
       const result = await evaluatePromptsWithCriteria(prompts, customCriteria, favorites, apiKeys, trackOpenAIRequest)
@@ -233,7 +229,6 @@ export default function PromptEvaluator() {
       alert(`Error evaluating prompts: ${error instanceof Error ? error.message : String(error)}`)
     } finally {
       setIsEvaluating(false)
-      setShowEvaluationOverlay(false)
     }
   }
 
@@ -463,11 +458,13 @@ export default function PromptEvaluator() {
           description={`EvalPrompts AI is analyzing "${userDescription}" and generating personalized evaluation criteria with optimized prompts.`}
         />
         <div className="min-h-screen bg-white">
-          <EnhancedLoadingOverlay
-            isVisible={true}
-            title="EvalPrompts AI Working"
-            steps={LOADING_STEPS.generateContent}
-          />
+          <div className="fixed top-0 left-0 right-0 z-50">
+            <Progress value={30} className="h-1" />
+          </div>
+          <div className="flex flex-col items-center justify-center h-[80vh] gap-4">
+            <Loader2 className="w-6 h-6 animate-spin text-mono-700" />
+            <p className="text-mono-600">Analyzing your description and generating criteria & prompts...</p>
+          </div>
         </div>
       </>
     )
@@ -477,6 +474,11 @@ export default function PromptEvaluator() {
   return (
     <>
       <SEOHead {...seoProps} />
+      {(isGeneratingContent || isGenerating || isEvaluating || isImproving) && (
+        <div className="fixed top-0 left-0 right-0 z-50">
+          <Progress value={isGeneratingContent ? 25 : isGenerating ? 50 : isEvaluating ? 75 : 60} className="h-1" />
+        </div>
+      )}
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
         <div className="max-w-7xl mx-auto">
           {(!apiKeys.openaiKey || !apiKeys.falKey || usedMockContent) && (
@@ -487,33 +489,37 @@ export default function PromptEvaluator() {
           )}
 
           <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <Button
-                variant="outline"
-                onClick={handleStartOver}
-                className="flex items-center gap-2 border-mono-300 text-mono-700 hover:bg-mono-50 bg-white"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Start Over
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setCurrentStep("api-setup")}
-                className="flex items-center gap-2 border-mono-300 text-mono-700 hover:bg-mono-50 bg-white"
-              >
-                <Settings className="w-4 h-4" />
-                API Settings
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowUsageModal(true)}
-                className="flex items-center gap-2 border-mono-300 text-mono-700 hover:bg-mono-50 bg-white"
-              >
-                <BarChart3 className="w-4 h-4" />
-                Usage Stats
-              </Button>
-            </div>
+                         <div className="flex items-center justify-center gap-4 mb-4">
+               <Button
+                 variant="outline"
+                 onClick={handleStartOver}
+                 className="flex items-center gap-2 border-mono-300 text-mono-700 hover:bg-mono-50 bg-white"
+               >
+                 <ArrowLeft className="w-4 h-4" />
+                 Start Over
+               </Button>
+             </div>
 
+            <div className="flex items-center justify-center gap-6 text-sm mb-3">
+              {(() => {
+                const steps = ["Describe", "Generate", "Evaluate", "Improve"]
+                let active = 0
+                if (currentStep === "description") active = 0
+                else if (currentStep === "generating-content") active = 1
+                else if (currentStep === "evaluation") active = evaluationResult ? 3 : (hasGeneratedImages ? 2 : 1)
+                return (
+                  <div className="flex items-center gap-4">
+                    {steps.map((label, idx) => (
+                      <div key={label} className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full ${idx <= active ? 'bg-mono-900' : 'bg-mono-300'}`} />
+                        <span className={`${idx === active ? 'text-mono-900 font-medium' : 'text-mono-500'}`}>{label}</span>
+                        {idx < steps.length - 1 && <span className="text-mono-400">›</span>}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
             <h1 className="text-4xl font-bold text-mono-900 mb-4">EvalPrompts</h1>
             <p className="text-lg text-mono-600 max-w-3xl mx-auto mb-6">
               AI-powered prompt evaluation and optimization for: <strong>"{userDescription}"</strong>
@@ -569,15 +575,7 @@ export default function PromptEvaluator() {
           )}
 
           {/* Prompt History Panel */}
-          <PromptHistoryPanel
-            history={history}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onUndo={undo}
-            onRedo={redo}
-            onNavigateToEntry={navigateToEntry}
-            className="mb-8"
-          />
+          {/* Full PromptHistoryPanel hidden by default to reduce clutter */}
 
           {/* Prompts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -641,20 +639,27 @@ export default function PromptEvaluator() {
 
                   {prompt.scores && customCriteria && (
                     <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        {Object.entries(customCriteria.criteria).map(([key, criterion]) => (
-                          <div key={key} className="flex items-center gap-2">
-                            <span className="text-xs text-mono-500 truncate">{criterion.name}:</span>
-                            <span className={getScoreColor(prompt.scores?.[key] || 0)}>
-                              {(prompt.scores?.[key] || 0).toFixed(1)}
-                            </span>
-                          </div>
-                        ))}
-                        <div className="flex items-center gap-2 col-span-2 border-t pt-2">
+                      <div className="space-y-3">
+                        {Object.entries(customCriteria.criteria).map(([key, criterion]) => {
+                          const value = prompt.scores?.[key] || 0
+                          const percent = Math.round((value / 10) * 100)
+                          return (
+                            <div key={key} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-mono-500 truncate">{criterion.name}</span>
+                                <span className={`font-medium ${getScoreColor(value)}`}>
+                                  {getScoreLabel(value)} ({value.toFixed(1)})
+                                </span>
+                              </div>
+                              <Progress value={percent} className="h-1.5" />
+                            </div>
+                          )
+                        })}
+                        <div className="flex items-center gap-2 pt-2 border-t">
                           <Sparkles className="w-4 h-4" />
                           <span className="font-medium">Overall:</span>
                           <span className={getScoreColor(prompt.scores.overall)}>
-                            {getScoreLabel(prompt.scores.overall)}
+                            {getScoreLabel(prompt.scores.overall)} ({prompt.scores.overall.toFixed(1)})
                           </span>
                         </div>
                       </div>
@@ -711,16 +716,6 @@ export default function PromptEvaluator() {
               )}
             </Button>
 
-            <Button
-              onClick={() => setShowImprovePrompts(true)}
-              disabled={!prompts.every((p) => p.imageUrl && p.scores)}
-              size="lg"
-              variant="outline"
-              className="border-mono-600 text-mono-800 hover:bg-mono-100 bg-white"
-            >
-              <Wand2 className="w-4 h-4 mr-2" />
-              Improve Prompts
-            </Button>
           </div>
 
           {/* Image Favorites - Only show after first generation */}
@@ -839,26 +834,7 @@ export default function PromptEvaluator() {
             recentRequests={getRecentRequests()}
           />
 
-          {/* Enhanced Loading Overlays */}
-          <EnhancedLoadingOverlay
-            isVisible={showImageGenerationOverlay}
-            title="Generating Images"
-            steps={LOADING_STEPS.generateImages}
-            onCancel={() => {
-              setIsGenerating(false)
-              setShowImageGenerationOverlay(false)
-            }}
-          />
-
-          <EnhancedLoadingOverlay
-            isVisible={showEvaluationOverlay}
-            title="AI Evaluation in Progress"
-            steps={LOADING_STEPS.evaluation}
-            onCancel={() => {
-              setIsEvaluating(false)
-              setShowEvaluationOverlay(false)
-            }}
-          />
+          {/* Top progress bar replaces blocking overlays */}
 
           {/* Footer */}
           <footer className="text-center py-12 mt-16 border-t border-mono-200">
@@ -866,27 +842,33 @@ export default function PromptEvaluator() {
               Made with <span className="text-mono-900">♥</span> by Nichlas Campos
             </p>
             <p className="text-mono-500 text-sm mb-6">Feel free to connect on LinkedIn or X</p>
-            <div className="flex items-center justify-center gap-6">
-              <a
-                href="https://www.linkedin.com/in/nichlaskvist/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-mono-600 hover:text-mono-900 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                </svg>
-              </a>
-              <a
-                href="https://x.com/nkjorg"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-mono-600 hover:text-mono-900 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                </svg>
-              </a>
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setCurrentStep("api-setup")} className="border-mono-300">API Settings</Button>
+                <Button variant="outline" size="sm" onClick={() => setShowUsageModal(true)} className="border-mono-300">Usage Stats</Button>
+              </div>
+              <div className="flex items-center justify-center gap-6">
+                <a
+                  href="https://www.linkedin.com/in/nichlaskvist/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-mono-600 hover:text-mono-900 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                  </svg>
+                </a>
+                <a
+                  href="https://x.com/nkjorg"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-mono-600 hover:text-mono-900 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.80l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                </a>
+              </div>
             </div>
           </footer>
         </div>
