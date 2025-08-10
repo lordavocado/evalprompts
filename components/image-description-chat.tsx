@@ -7,14 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, MessageCircle, Sparkles, Send } from "lucide-react"
+import { Loader2, MessageCircle, Sparkles, Send, Copy, Shuffle, Zap } from "lucide-react"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 interface ImageDescriptionChatProps {
   onComplete: (description: string) => void
   apiKeys: { openaiKey?: string; falKey?: string }
+  variationMode: "identical" | "variations" | "radical"
+  onVariationModeChange: (mode: "identical" | "variations" | "radical") => void
 }
 
-export function ImageDescriptionChat({ onComplete, apiKeys }: ImageDescriptionChatProps) {
+export function ImageDescriptionChat({ onComplete, apiKeys, variationMode, onVariationModeChange }: ImageDescriptionChatProps) {
   const [description, setDescription] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
@@ -85,6 +88,31 @@ export function ImageDescriptionChat({ onComplete, apiKeys }: ImageDescriptionCh
               <p className="text-xs text-mono-600">
                 Be as specific as possible - mention style, purpose, audience, mood, and any technical requirements
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-mono-800">Prompt generation mode</label>
+              <ToggleGroup
+                type="single"
+                value={variationMode}
+                onValueChange={(val) => {
+                  if (val) onVariationModeChange(val as "identical" | "variations" | "radical")
+                }}
+                className="justify-start"
+              >
+                <ToggleGroupItem value="identical" aria-label="Identical prompts" className="border border-mono-200 bg-white text-mono-700 data-[state=on]:bg-mono-900 data-[state=on]:text-white">
+                  <Copy className="w-4 h-4" />
+                  Same
+                </ToggleGroupItem>
+                <ToggleGroupItem value="variations" aria-label="Small variations" className="border border-mono-200 bg-white text-mono-700 data-[state=on]:bg-mono-900 data-[state=on]:text-white">
+                  <Shuffle className="w-4 h-4" />
+                  Small variations
+                </ToggleGroupItem>
+                <ToggleGroupItem value="radical" aria-label="Radical differences" className="border border-mono-200 bg-white text-mono-700 data-[state=on]:bg-mono-900 data-[state=on]:text-white">
+                  <Zap className="w-4 h-4" />
+                  Radical
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
 
             <Button
