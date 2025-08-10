@@ -25,12 +25,14 @@ interface FavoriteImage {
   notes?: string
 }
 
+const PLACEHOLDER_MARKER = "placeholder.svg"
+
 // Mock image generation for demonstration
 export async function generateImagesMock(prompts: string[], model: FluxModel): Promise<string[]> {
   console.log(`Using mock image generation with ${model.name}...`)
   await new Promise((resolve) => setTimeout(resolve, 2000))
 
-  return prompts.map((prompt, index) => {
+  return prompts.map((prompt) => {
     const encodedPrompt = encodeURIComponent(`${prompt} (${model.name})`)
     return `/placeholder.svg?height=400&width=400&query=${encodedPrompt}`
   })
@@ -84,7 +86,7 @@ export async function generateImages(
         // Use model-specific parameters based on Fal.ai API spec
         const parameters = {
           prompt: prompt,
-          aspect_ratio: "1:1", // Use aspect_ratio instead of image_size
+          aspect_ratio: "1:1", // default unless user adds aspect hints
           num_inference_steps: model.parameters?.num_inference_steps?.[1] || 28,
           guidance_scale: model.parameters?.guidance_scale?.[1] || 3.5,
           num_images: 1,

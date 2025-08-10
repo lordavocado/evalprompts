@@ -17,7 +17,7 @@ interface UsageStats {
 
 const STORAGE_KEY = "evalprompts-usage-stats"
 
-// Pricing (approximate)
+// Pricing (approximate, for local estimates only; may differ from provider billing)
 const PRICING = {
   fal: {
     "flux-pro": 0.055, // per image
