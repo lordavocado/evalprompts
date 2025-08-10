@@ -25,6 +25,40 @@ interface FavoriteImage {
   notes?: string
 }
 
+// Heuristic prompt rewriter used when an AI key is unavailable or an error occurs
+function rewritePromptWithoutAI(originalPrompt: string, direction: string): string {
+  const text = (originalPrompt || "").trim()
+  if (!text) return direction.trim()
+
+  const negativeMatch = text.match(/Negative prompt:\s*[\s\S]*$/i)
+  const negativeSection = negativeMatch ? negativeMatch[0].trim() : ""
+  const base = negativeMatch ? text.slice(0, negativeMatch.index as number).trim() : text
+
+  const sentences = base.split(/(?<=[.!?])\s+/).filter(Boolean)
+  const subjectSentence = sentences[0] || base
+  const remainder = sentences.slice(1).join(" ")
+
+  const aspectMatch = base.match(/\b(\d+:\d+)\b\s*aspect ratio/i)
+  const aspectText = aspectMatch ? `Captured in a ${aspectMatch[1]} aspect ratio.` : ""
+  const focalMatch = base.match(/Use a [^.!?]+/i)
+  const focalText = focalMatch ? `${(focalMatch[0] || '').trim()}.` : ""
+
+  const cleanedSubject = subjectSentence.replace(/^(A|An|The)\s+/i, "").trim()
+  const rewrittenCore = `A ${cleanedSubject} with an emphasis on ${direction.toLowerCase()}.`
+
+  const refinedDetails = remainder
+    ? `Refine the scene so all details align with this direction: ${direction.toLowerCase()}. ${remainder}`
+    : `Refine composition, lighting, and styling to embody this direction.`
+
+  const finalPrompt = [rewrittenCore, refinedDetails, aspectText, focalText]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  return negativeSection ? `${finalPrompt} ${negativeSection}` : finalPrompt
+}
+
 const PLACEHOLDER_MARKER = "placeholder.svg"
 
 // Mock image generation for demonstration
@@ -178,10 +212,10 @@ export async function applyCustomDirection(
   onTrackUsage?: (model: string, estimatedTokens: number) => void,
 ): Promise<PromptData[]> {
   if (!apiKeys.openaiKey) {
-    console.log("OpenAI API key not provided, using mock improvement")
+    console.log("OpenAI API key not provided, using heuristic rewrite for custom direction")
     return prompts.map((prompt) => ({
       ...prompt,
-      text: `${prompt.text}, ${direction}`,
+      text: rewritePromptWithoutAI(prompt.text, direction),
       imageUrl: undefined,
       scores: undefined,
       feedback: undefined,
@@ -251,7 +285,7 @@ Return ONLY the optimized prompt that seamlessly integrates the user instruction
           console.error("Error improving prompt:", error?.message || error)
           return {
             ...prompt,
-            text: `${prompt.text}, ${direction}`,
+            text: rewritePromptWithoutAI(prompt.text, direction),
             imageUrl: undefined,
             scores: undefined,
             feedback: undefined,
@@ -266,7 +300,7 @@ Return ONLY the optimized prompt that seamlessly integrates the user instruction
     console.error("Error applying custom direction:", error?.message || error)
     return prompts.map((prompt) => ({
       ...prompt,
-      text: `${prompt.text}, ${direction}`,
+      text: rewritePromptWithoutAI(prompt.text, direction),
       imageUrl: undefined,
       scores: undefined,
       feedback: undefined,
