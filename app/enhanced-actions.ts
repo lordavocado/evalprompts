@@ -473,67 +473,33 @@ Respond with ONLY valid JSON (no markdown):
       }),
     )
 
-    // Generate comparative analysis using GPT-4o-mini
+    // Generate comparative analysis and recommendations using a single call
     try {
-      const { text: comparison } = await generateText({
+      const { text: combinedAnalysis } = await generateText({
         model,
-        prompt: `Compare these prompts using the custom criteria. Keep it concise (3-4 sentences):
-
-CRITERIA: ${Object.entries(criteria.criteria)
-          .map(([key, criterion]) => `${criterion.name} (${Math.round(criterion.weight * 100)}%)`)
-          .join(", ")}
-
-RESULTS:
-${evaluatedPrompts.map((p, i) => `Prompt ${i + 1}: ${p.scores?.overall?.toFixed(1) || 0}/10`).join(", ")}
-
-Which performed best and why? Focus on the custom criteria performance.`,
+        prompt: `Using the following custom criteria and evaluation results, write a concise comparison (3-4 sentences) and then list 5 specific, actionable recommendations. Return ONLY valid JSON with the keys \"comparison\" (string) and \"recommendations\" (array of 5 strings). No markdown.\n\nCRITERIA DEFINITIONS:\n${Object.entries(criteria.criteria)
+          .map(([key, criterion]) => `${criterion.name}: ${criterion.description} (${Math.round(criterion.weight * 100)}%)`)
+          .join("\n")}\n\nCURRENT PERFORMANCE:\n${evaluatedPrompts
+          .map((p, i) => `Prompt ${i + 1}: ${p.scores?.overall?.toFixed(1) || 0}/10 - ${p.feedback}`)
+          .join("\n")}\n`,
       })
 
-      // Track usage for comparison
+      // Track usage
       if (onTrackUsage) {
-        onTrackUsage("gpt-4o-mini", 400)
+        onTrackUsage("gpt-4o-mini", 800)
       }
+
+      const cleanCombined = combinedAnalysis.replace(/```json\s*|\s*```/g, "").trim()
+      const parsedCombined = JSON.parse(cleanCombined)
+      const comparison: string = parsedCombined.comparison || ""
+      const recommendations: string[] = Array.isArray(parsedCombined.recommendations)
+        ? parsedCombined.recommendations.slice(0, 5)
+        : []
 
       // Identify best prompt
       const bestPrompt = evaluatedPrompts.reduce((best, current) =>
         (current.scores?.overall || 0) > (best.scores?.overall || 0) ? current : best,
       )
-
-      // Generate actionable recommendations using GPT-4o-mini
-      const { text: recommendationsText } = await generateText({
-        model,
-        prompt: `Based on the evaluation results, provide 5 specific, actionable recommendations to improve the prompts:
-
-CRITERIA DEFINITIONS:
-${Object.entries(criteria.criteria)
-  .map(([key, criterion]) => `${criterion.name}: ${criterion.description}`)
-  .join("\n")}
-
-CURRENT PERFORMANCE:
-${evaluatedPrompts
-  .map((p, i) => `Prompt ${i + 1}: ${p.scores?.overall?.toFixed(1) || 0}/10 - ${p.feedback}`)
-  .join("\n")}
-
-Provide 5 recommendations in this format:
-1. [Specific actionable improvement]
-2. [Specific actionable improvement]
-3. [Specific actionable improvement]
-4. [Specific actionable improvement]
-5. [Specific actionable improvement]
-
-Each should be concrete and directly address the custom criteria definitions.`,
-      })
-
-      // Track usage for recommendations
-      if (onTrackUsage) {
-        onTrackUsage("gpt-4o-mini", 600)
-      }
-
-      const recommendations = recommendationsText
-        .split("\n")
-        .filter((line) => line.trim().match(/^\d+\./))
-        .map((line) => line.replace(/^\d+\.\s*/, "").trim())
-        .slice(0, 5)
 
       return {
         prompts: evaluatedPrompts,
@@ -543,7 +509,7 @@ Each should be concrete and directly address the custom criteria definitions.`,
         criteriaUsed: criteria,
       }
     } catch (comparisonError) {
-      console.log("Error generating comparison, using mock comparison")
+      console.log("Error generating comparison+recommendations, using mock comparison")
       return mockEvaluatePrompts(prompts, criteria, favorites)
     }
   } catch (error: any) {

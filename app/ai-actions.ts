@@ -164,53 +164,7 @@ export async function generateCustomContent(
       return mockGenerateContent(description, mode)
     }
 
-    // Generate custom evaluation criteria
-    const { text: criteriaText } = await generateText({
-      model,
-      prompt: `Based on this image creation request: "${description}"
-
-Create custom evaluation criteria that would be most relevant for assessing the quality and effectiveness of images for this specific use case.
-
-Respond with ONLY a valid JSON object in this exact format (no markdown, no code blocks, no extra text):
-{
-  "name": "Descriptive name for this criteria set",
-  "description": "Brief description of what this criteria focuses on",
-  "icon": "Single emoji that represents this use case",
-  "criteria": {
-    "criterion1": {
-      "name": "Criterion name",
-      "description": "What this criterion evaluates",
-      "weight": 0.25
-    },
-    "criterion2": {
-      "name": "Criterion name",
-      "description": "What this criterion evaluates",
-      "weight": 0.25
-    },
-    "criterion3": {
-      "name": "Criterion name",
-      "description": "What this criterion evaluates",
-      "weight": 0.25
-    },
-    "criterion4": {
-      "name": "Criterion name",
-      "description": "What this criterion evaluates",
-      "weight": 0.25
-    }
-  },
-  "suggestionFocus": [
-    "Specific suggestion type 1",
-    "Specific suggestion type 2",
-    "Specific suggestion type 3",
-    "Specific suggestion type 4",
-    "Specific suggestion type 5"
-  ]
-}
-
-Make sure the criteria are highly specific to the described use case and the weights sum to exactly 1.0.`,
-    })
-
-    // Generate prompts based on mode
+    // Generate criteria AND prompts in a single response
     let promptGenerationInstruction = ""
 
     if (mode === "identical") {
@@ -222,29 +176,23 @@ Make sure the criteria are highly specific to the described use case and the wei
       promptGenerationInstruction = `Generate 3 different, optimized prompts for Flux AI image generation based on: "${description}". Each prompt should be similar but with small variations in style, composition, or technical details.`
     }
 
-    const { text: promptsText } = await generateText({
+    const { text: combinedText } = await generateText({
       model,
-      prompt: `${promptGenerationInstruction}
-
-Each prompt should:
-1. Include relevant technical details (lighting, composition, style, camera)
-2. Include explicit aspect ratio hints (e.g., 1:1, 3:4, 16:9) when appropriate
-3. Use effective keywords that work well with AI image generation
-4. Include optional negative prompt hints (e.g., "no text, no watermark, no blurry") where helpful
-5. Avoid copyrighted character names or protected IP unless user-provided
-
-Respond with ONLY a valid JSON array of exactly 3 strings (no markdown, no code blocks, no extra text):
-["prompt1", "prompt2", "prompt3"]
-
-Make each prompt detailed and specific, incorporating best practices for AI image generation, optimized for Flux via Fal.ai.`,
+      prompt: `Based on this image creation request: "${description}"\n\nReturn a SINGLE JSON object with BOTH custom evaluation criteria and 3 prompts. No markdown, no extra text. Use this exact schema:\n{\n  "criteria": {\n    "name": "string",
+    "description": "string",
+    "icon": "emoji",
+    "criteria": {"criterion1": {"name": "string", "description": "string", "weight": 0.25}, "criterion2": {"name": "string", "description": "string", "weight": 0.25}, "criterion3": {"name": "string", "description": "string", "weight": 0.25}, "criterion4": {"name": "string", "description": "string", "weight": 0.25}},
+    "suggestionFocus": ["string", "string", "string", "string", "string"]
+  },
+  "prompts": ["prompt1", "prompt2", "prompt3"]
+}\n\n${promptGenerationInstruction}\n\nEach prompt should:\n1. Include relevant technical details (lighting, composition, style, camera)\n2. Include aspect ratio hints when appropriate\n3. Use effective keywords for AI image generation\n4. Include optional negative prompt hints where helpful\n5. Avoid copyrighted character names unless user-provided`,
     })
 
     try {
-      // Clean the responses to remove any markdown formatting and robustly parse JSON
-      const parsedCriteria = extractJson<any>(criteriaText)
-      const parsedPrompts = extractJson<any>(promptsText)
+      const parsed = extractJson<any>(combinedText)
+      const parsedCriteria = parsed.criteria
+      const parsedPrompts = parsed.prompts
 
-      // Validate and create criteria object
       const criteria: EvaluationCriteria = {
         id: `custom_${Date.now()}`,
         name: parsedCriteria.name,
@@ -261,7 +209,7 @@ Make each prompt detailed and specific, incorporating best practices for AI imag
         isMock: false,
       }
     } catch (parseError) {
-      console.error("Error parsing AI response:", parseError)
+      console.error("Error parsing combined AI response:", parseError)
       return mockGenerateContent(description, mode)
     }
   } catch (error: any) {
