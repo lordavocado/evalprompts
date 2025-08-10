@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is EvalPrompts, an AI-powered prompt evaluation and optimization platform for image generation. The application helps users:
 - Generate customized evaluation criteria based on user descriptions
 - Create optimized prompts for AI image generation  
-- Evaluate prompts using GPT-4o-mini analysis
+- Evaluate prompts using GPT-5-mini analysis
 - Iteratively improve prompts through selective enhancements
 - Track favorites and analyze patterns for better results
 
@@ -63,7 +63,7 @@ npm run lint
 **Server Actions**:
 - `generateCustomContent()` - Creates evaluation criteria and prompts from user description
 - `generateImages()` - Flux AI image generation 
-- `evaluatePromptsWithCriteria()` - GPT-4o-mini prompt evaluation
+- `evaluatePromptsWithCriteria()` - GPT-5-mini prompt evaluation
 - `improvePromptsSelectively()` - Targeted prompt improvements
 
 **State Management**:
@@ -72,7 +72,7 @@ npm run lint
 
 ## API Integration
 
-**OpenAI**: Uses GPT-4o-mini for content generation, prompt evaluation, and improvements. All calls tracked for usage monitoring.
+**OpenAI**: Uses GPT-5-mini for content generation, prompt evaluation, and improvements. All calls tracked for usage monitoring.
 
 **Fal AI**: Image generation with multiple Flux model options. Model recommendations based on user description and criteria.
 

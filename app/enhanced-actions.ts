@@ -190,7 +190,7 @@ export async function applyCustomDirection(
   }
 
   try {
-    const model = openai("gpt-4o-mini", {
+    const model = openai("gpt-5-mini", {
       apiKey: apiKeys.openaiKey,
     })
 
@@ -237,7 +237,7 @@ Return ONLY the optimized prompt that seamlessly integrates the user instruction
 
           // Track usage for improvement
           if (onTrackUsage) {
-            onTrackUsage("gpt-4o-mini", 400)
+            onTrackUsage("gpt-5-mini", 400)
           }
 
           return {
@@ -347,7 +347,7 @@ export async function evaluatePromptsWithCriteria(
 
   try {
     // Use GPT-4o-mini for image analysis and evaluation
-    const model = openai("gpt-4o-mini", {
+    const model = openai("gpt-5-mini", {
       apiKey: apiKeys.openaiKey,
     })
 
@@ -365,7 +365,7 @@ export async function evaluatePromptsWithCriteria(
 
     // Track usage for test call
     if (onTrackUsage) {
-      onTrackUsage("gpt-4o-mini", 10)
+      onTrackUsage("gpt-5-mini", 10)
     }
 
     // Analyze favorites for pattern recognition
@@ -389,7 +389,7 @@ Provide 2-3 sentences about visual patterns and preferences.`,
 
       // Track usage for favorites analysis
       if (onTrackUsage) {
-        onTrackUsage("gpt-4o-mini", 300)
+        onTrackUsage("gpt-5-mini", 300)
       }
     }
 
@@ -430,7 +430,7 @@ Respond with ONLY valid JSON (no markdown):
 
           // Track usage for individual evaluation
           if (onTrackUsage) {
-            onTrackUsage("gpt-4o-mini", 800)
+            onTrackUsage("gpt-5-mini", 800)
           }
 
           // Clean the response to remove any markdown formatting
@@ -491,7 +491,7 @@ Which performed best and why? Focus on the custom criteria performance.`,
 
       // Track usage for comparison
       if (onTrackUsage) {
-        onTrackUsage("gpt-4o-mini", 400)
+        onTrackUsage("gpt-5-mini", 400)
       }
 
       // Identify best prompt
@@ -526,7 +526,7 @@ Each should be concrete and directly address the custom criteria definitions.`,
 
       // Track usage for recommendations
       if (onTrackUsage) {
-        onTrackUsage("gpt-4o-mini", 600)
+        onTrackUsage("gpt-5-mini", 600)
       }
 
       const recommendations = recommendationsText
@@ -571,7 +571,7 @@ export async function analyzeFavoritePatterns(
   }
 
   try {
-    const model = openai("gpt-4o-mini", {
+    const model = openai("gpt-5-mini", {
       apiKey: apiKeys.openaiKey,
     })
 
@@ -603,7 +603,7 @@ Respond with ONLY valid JSON (no markdown):
 
     // Track usage for analysis
     if (onTrackUsage) {
-      onTrackUsage("gpt-4o-mini", 600)
+      onTrackUsage("gpt-5-mini", 600)
     }
 
     // Clean the response to remove any markdown formatting
@@ -647,7 +647,7 @@ export async function improvePromptsSelectively(
   }
 
   try {
-    const model = openai("gpt-4o-mini", {
+    const model = openai("gpt-5-mini", {
       apiKey: apiKeys.openaiKey,
     })
 
@@ -713,7 +713,7 @@ Return ONLY the optimized prompt that implements the selected improvements.`,
 
           // Track usage for improvement
           if (onTrackUsage) {
-            onTrackUsage("gpt-4o-mini", 600)
+            onTrackUsage("gpt-5-mini", 600)
           }
 
           return {
