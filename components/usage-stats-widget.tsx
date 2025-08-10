@@ -62,7 +62,7 @@ export function UsageStatsWidget({ stats, onOpenModal }: UsageStatsWidgetProps) 
             </div>
             <div>
               <div className="font-semibold">{formatCurrency(stats.totalCost)}</div>
-              <div className="text-sm text-mono-600">Estimated Cost</div>
+              <div className="text-sm text-mono-600">Estimated Cost (approximate)</div>
             </div>
           </div>
 

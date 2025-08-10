@@ -94,7 +94,7 @@ export function UsageStatsModal({ isOpen, onClose, stats, onReset, recentRequest
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{formatCurrency(stats.totalCost)}</div>
-                <p className="text-xs text-muted-foreground">Estimated spend</p>
+                <p className="text-xs text-muted-foreground">Estimated spend (approximate)</p>
               </CardContent>
             </Card>
 
@@ -154,6 +154,9 @@ export function UsageStatsModal({ isOpen, onClose, stats, onReset, recentRequest
                   <div className="flex items-center justify-between text-sm">
                     <span>Average cost per request:</span>
                     <Badge variant="outline">{formatCurrency(avgCostPerRequest)}</Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Costs are estimates based on simplified pricing and local tracking. Your provider billing may differ.
                   </div>
                 </div>
               )}

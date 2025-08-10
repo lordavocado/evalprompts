@@ -7,6 +7,36 @@ import type { EvaluationCriteria } from "@/types/evaluation-criteria"
 interface GeneratedContent {
   criteria: EvaluationCriteria
   prompts: string[]
+  isMock: boolean
+}
+
+// Helper to safely extract and parse JSON from LLM output
+function extractJson<T = unknown>(raw: string): T {
+  const cleaned = raw.replace(/```json\s*|```/g, "").trim()
+  const firstBrace = cleaned.indexOf("{")
+  const lastBrace = cleaned.lastIndexOf("}")
+  const firstBracket = cleaned.indexOf("[")
+  const lastBracket = cleaned.lastIndexOf("]")
+
+  let candidate = cleaned
+  if (firstBrace !== -1 && lastBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    candidate = cleaned.slice(firstBrace, lastBrace + 1)
+  } else if (firstBracket !== -1 && lastBracket !== -1) {
+    candidate = cleaned.slice(firstBracket, lastBracket + 1)
+  }
+
+  return JSON.parse(candidate)
+}
+
+function normalizeCriteriaWeights(criteria: EvaluationCriteria["criteria"]): EvaluationCriteria["criteria"] {
+  const weights = Object.values(criteria).map((c) => c.weight || 0)
+  const sum = weights.reduce((a, b) => a + b, 0)
+  if (sum <= 0) return criteria
+  const normalized: EvaluationCriteria["criteria"] = {}
+  for (const [key, crit] of Object.entries(criteria)) {
+    normalized[key] = { ...(crit as any), weight: Number(((crit as any).weight || 0) / sum) }
+  }
+  return normalized
 }
 
 type VariationMode = "identical" | "variations" | "radical"
@@ -102,6 +132,7 @@ async function mockGenerateContent(description: string, mode: VariationMode): Pr
   return {
     criteria: mockCriteria,
     prompts: basePrompts,
+    isMock: true,
   }
 }
 
@@ -196,23 +227,22 @@ Make sure the criteria are highly specific to the described use case and the wei
       prompt: `${promptGenerationInstruction}
 
 Each prompt should:
-1. Include relevant technical details (lighting, composition, style)
-2. Use effective keywords that work well with AI image generation
-3. Be optimized for the best possible results
+1. Include relevant technical details (lighting, composition, style, camera)
+2. Include explicit aspect ratio hints (e.g., 1:1, 3:4, 16:9) when appropriate
+3. Use effective keywords that work well with AI image generation
+4. Include optional negative prompt hints (e.g., "no text, no watermark, no blurry") where helpful
+5. Avoid copyrighted character names or protected IP unless user-provided
 
 Respond with ONLY a valid JSON array of exactly 3 strings (no markdown, no code blocks, no extra text):
 ["prompt1", "prompt2", "prompt3"]
 
-Make each prompt detailed and specific, incorporating best practices for AI image generation.`,
+Make each prompt detailed and specific, incorporating best practices for AI image generation, optimized for Flux via Fal.ai.`,
     })
 
     try {
-      // Clean the responses to remove any markdown formatting
-      const cleanCriteriaText = criteriaText.replace(/```json\s*|\s*```/g, "").trim()
-      const cleanPromptsText = promptsText.replace(/```json\s*|\s*```/g, "").trim()
-
-      const parsedCriteria = JSON.parse(cleanCriteriaText)
-      const parsedPrompts = JSON.parse(cleanPromptsText)
+      // Clean the responses to remove any markdown formatting and robustly parse JSON
+      const parsedCriteria = extractJson<any>(criteriaText)
+      const parsedPrompts = extractJson<any>(promptsText)
 
       // Validate and create criteria object
       const criteria: EvaluationCriteria = {
@@ -220,7 +250,7 @@ Make each prompt detailed and specific, incorporating best practices for AI imag
         name: parsedCriteria.name,
         description: parsedCriteria.description,
         icon: parsedCriteria.icon,
-        criteria: parsedCriteria.criteria,
+        criteria: normalizeCriteriaWeights(parsedCriteria.criteria),
         evaluationPrompt: `Evaluate this prompt based on custom criteria for: ${description}`,
         suggestionFocus: parsedCriteria.suggestionFocus,
       }
@@ -228,6 +258,7 @@ Make each prompt detailed and specific, incorporating best practices for AI imag
       return {
         criteria,
         prompts: Array.isArray(parsedPrompts) ? parsedPrompts : [description],
+        isMock: false,
       }
     } catch (parseError) {
       console.error("Error parsing AI response:", parseError)

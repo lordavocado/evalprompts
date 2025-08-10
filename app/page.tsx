@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Sparkles, TrendingUp, Eye, Settings, ArrowLeft, Heart, BarChart3, Wand2 } from "lucide-react"
+import { Loader2, Sparkles, TrendingUp, Eye, Settings, ArrowLeft, Heart, BarChart3, Wand2, Info } from "lucide-react"
 import { ApiKeySetup } from "@/components/api-key-setup"
 import { ImageDescriptionChat } from "@/components/image-description-chat"
 import { useSecureStorage } from "@/hooks/use-secure-storage"
@@ -107,6 +107,7 @@ export default function PromptEvaluator() {
   const [favorites, setFavorites] = useState<FavoriteImage[]>([])
   const [variationMode, setVariationMode] = useState<VariationMode>("variations")
   const [hasGeneratedImages, setHasGeneratedImages] = useState(false)
+  const [usedMockContent, setUsedMockContent] = useState(false)
 
   // Dynamic SEO based on current step and user input
   const getSEOProps = () => {
@@ -146,6 +147,7 @@ export default function PromptEvaluator() {
     try {
       const content = await generateCustomContent(description, apiKeys, variationMode)
       setCustomCriteria(content.criteria)
+      setUsedMockContent(content.isMock)
 
       // Get model recommendations
       const modelRecs = getModelRecommendations(description, content.criteria)
@@ -477,6 +479,13 @@ export default function PromptEvaluator() {
       <SEOHead {...seoProps} />
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
         <div className="max-w-7xl mx-auto">
+          {(!apiKeys.openaiKey || !apiKeys.falKey || usedMockContent) && (
+            <div className="mb-6 p-3 border border-yellow-300 bg-yellow-50 rounded-md flex items-center gap-2 text-sm text-yellow-900">
+              <Info className="w-4 h-4" />
+              Some results may be using mock/demo data (no API key provided or provider unavailable). Add valid API keys in API Settings for live results.
+            </div>
+          )}
+
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-4 mb-4">
               <Button
@@ -515,8 +524,14 @@ export default function PromptEvaluator() {
                 Iteration {currentIteration}
               </Badge>
               <Badge variant="outline" className="text-sm border-mono-300 text-mono-700 bg-white">
+                {variationMode === "identical" ? "Identical Prompts" : variationMode === "radical" ? "Radical Differences" : "Small Variations"}
+              </Badge>
+              <Badge variant="outline" className="text-sm border-mono-300 text-mono-700 bg-white">
                 GPT-4o-mini Analysis
               </Badge>
+              {usedMockContent && (
+                <Badge className="text-sm bg-yellow-500 text-white">Demo Mode</Badge>
+              )}
             </div>
 
             {/* Compact History Controls */}
@@ -535,7 +550,14 @@ export default function PromptEvaluator() {
           <UsageStatsWidget stats={stats} onOpenModal={() => setShowUsageModal(true)} />
 
           {/* Inline Criteria Editor */}
-          {customCriteria && <InlineCriteriaEditor criteria={customCriteria} onUpdate={setCustomCriteria} />}
+          {customCriteria && (
+            <div className="mb-2 flex items-center gap-2">
+              <InlineCriteriaEditor criteria={customCriteria} onUpdate={setCustomCriteria} />
+              {usedMockContent && (
+                <Badge className="bg-yellow-500 text-white">Mock criteria</Badge>
+              )}
+            </div>
+          )}
 
           {/* Flux Model Selector */}
           {customCriteria && (
