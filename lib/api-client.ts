@@ -42,7 +42,7 @@ export class ApiClient {
     // Test OpenAI key
     if (this.apiKeys.openaiKey) {
       try {
-        const model = openai("gpt-4o-mini", {
+        const model = openai("gpt-5-nano", {
           apiKey: this.apiKeys.openaiKey,
         })
         
@@ -53,7 +53,7 @@ export class ApiClient {
         })
         
         result.openai = true
-        this.onTrackUsage?.("gpt-4o-mini", 10)
+        this.onTrackUsage?.("gpt-5-nano", 10)
       } catch (error: any) {
         result.errors.openai = error?.message || "Invalid OpenAI API key"
       }
@@ -89,7 +89,7 @@ export class ApiClient {
     }
 
     try {
-      const model = openai("gpt-4o-mini", {
+      const model = openai("gpt-5-mini", {
         apiKey: this.apiKeys.openaiKey,
       })
 
@@ -100,7 +100,7 @@ export class ApiClient {
       })
 
       // Track usage
-      this.onTrackUsage?.("gpt-4o-mini", maxTokens || 800)
+      this.onTrackUsage?.("gpt-5-mini", maxTokens || 800)
 
       return text
     } catch (error: any) {

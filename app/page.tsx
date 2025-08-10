@@ -111,7 +111,7 @@ export default function PromptEvaluator() {
     if (currentStep === "evaluation" && userDescription) {
       return {
         title: `EvalPrompts - Optimizing "${userDescription}" | AI Prompt Evaluation`,
-        description: `Currently optimizing AI prompts for "${userDescription}" using advanced evaluation criteria and GPT-4o-mini analysis. Iteration ${currentIteration} in progress.`,
+        description: `Currently optimizing AI prompts for "${userDescription}" using advanced evaluation criteria and GPT-5-mini analysis. Iteration ${currentIteration} in progress.`,
       }
     }
 
@@ -537,7 +537,7 @@ export default function PromptEvaluator() {
                 {variationMode === "identical" ? "Identical Prompts" : variationMode === "radical" ? "Radical Differences" : "Small Variations"}
               </Badge>
               <Badge variant="outline" className="text-sm border-mono-300 text-mono-700 bg-white">
-                GPT-4o-mini Analysis
+                GPT-5-mini Analysis
               </Badge>
               {usedMockContent && (
                 <Badge className="text-sm bg-yellow-500 text-white">Demo Mode</Badge>

@@ -27,8 +27,13 @@ const PRICING = {
     "flux-anime": 0.025,
   },
   openai: {
-    "gpt-4o": 0.0025, // per 1K tokens (input) - simplified
-    "gpt-4o-mini": 0.00015, // per 1K tokens (input)
+    // GPT-5 family (approximate; local estimates only)
+    "gpt-5-mini": 0.00015, // per 1K tokens (input)
+    "gpt-5-nano": 0.00005,
+
+    // Legacy GPT-4 family (kept for backward compatibility in history)
+    "gpt-4o": 0.0025,
+    "gpt-4o-mini": 0.00015,
   },
 }
 
@@ -86,8 +91,18 @@ export function useUsageTracking() {
   }
 
   const trackOpenAIRequest = (model: string, estimatedTokens = 1000) => {
-    const modelKey = model.includes("mini") ? "gpt-4o-mini" : "gpt-4o"
-    const costPer1K = PRICING.openai[modelKey]
+    // Prefer explicit pricing key if available
+    let pricingKey: keyof typeof PRICING.openai | undefined = model as any
+
+    if (!(pricingKey in PRICING.openai)) {
+      const lower = model.toLowerCase()
+      if (lower.includes("nano")) pricingKey = "gpt-5-nano"
+      else if (lower.includes("mini")) pricingKey = "gpt-5-mini"
+      else if (lower.includes("4o")) pricingKey = lower.includes("mini") ? "gpt-4o-mini" : "gpt-4o"
+      else pricingKey = "gpt-5-mini"
+    }
+
+    const costPer1K = PRICING.openai[pricingKey]
     const totalCost = (estimatedTokens / 1000) * costPer1K
 
     setStats((prev) => ({
@@ -101,7 +116,7 @@ export function useUsageTracking() {
           timestamp: Date.now(),
           service: "openai",
           cost: totalCost,
-          type: `${modelKey} (~${estimatedTokens} tokens)`,
+          type: `${pricingKey} (~${estimatedTokens} tokens)`,
         },
       ].slice(-100),
     }))
