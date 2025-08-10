@@ -13,26 +13,38 @@ export function ProductExplainer({ onGetStarted }: ProductExplainerProps) {
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <div className="container mx-auto px-6 py-12">
-        <div className="text-center mb-16">
-          <div className="mb-6">
-            <h1 className="text-6xl font-bold text-mono-900 mb-4">EvalPrompts</h1>
+        <div className="relative text-center mb-16 overflow-hidden rounded-2xl">
+          <div className="absolute -top-24 -left-24 h-72 w-72 bg-indigo-300 rounded-full blur-3xl opacity-40 pointer-events-none" />
+          <div className="absolute -bottom-24 -right-24 h-72 w-72 bg-fuchsia-300 rounded-full blur-3xl opacity-40 pointer-events-none" />
+          <div className="relative py-8">
+            <div className="mb-6">
+              <h1 className="text-6xl font-extrabold mb-4 bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
+                Make your prompts pop ✨
+              </h1>
+            </div>
+            <p className="text-xl text-mono-700 max-w-3xl mx-auto mb-6 leading-relaxed">
+              Tell us what you want to create. We’ll craft, score, and refine prompts until they shine — all in a clean, simple UI.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                onClick={onGetStarted}
+                size="lg"
+                className="bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 hover:brightness-110 text-white text-lg px-12 py-4 h-auto rounded-lg font-medium shadow-sm"
+              >
+                Try it now
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </div>
+            <div className="mt-3 text-sm text-mono-500">
+              No sign-up • Your API keys stay on your device
+            </div>
           </div>
-          <p className="text-xl text-mono-600 max-w-3xl mx-auto mb-12 leading-relaxed">
-            Transform your creative ideas into high-performing AI image generation prompts through systematic evaluation and optimization.
-          </p>
-          <Button
-            onClick={onGetStarted}
-            size="lg"
-            className="bg-mono-900 hover:bg-mono-800 text-white text-lg px-12 py-4 h-auto rounded-lg font-medium"
-          >
-            Get Started
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </Button>
         </div>
 
         {/* How It Works Section */}
-        <div className="mb-20">
-          <h2 className="text-3xl font-bold text-center text-mono-900 mb-16">How it works</h2>
+        <div id="how-it-works" className="mb-20">
+          <h2 className="text-3xl font-bold text-center text-mono-900 mb-6">How it works</h2>
+          <p className="text-center text-mono-600 mb-10">A friendly loop that turns vague ideas into crisp prompts.</p>
 
           <div className="max-w-4xl mx-auto">
             <div className="grid md:grid-cols-3 gap-12">
@@ -66,8 +78,9 @@ export function ProductExplainer({ onGetStarted }: ProductExplainerProps) {
 
             {/* Simple tagline */}
             <div className="text-center mt-16">
-              <div className="inline-block border border-mono-200 px-8 py-4 rounded-lg">
-                <span className="text-lg font-medium text-mono-800">Better prompts, better results</span>
+              <div className="inline-flex items-center gap-2 border border-mono-200 px-6 py-3 rounded-full bg-white/70 backdrop-blur">
+                <span className="inline-block h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-sm font-medium text-mono-800">People get results in minutes, not hours</span>
               </div>
             </div>
           </div>
@@ -75,6 +88,24 @@ export function ProductExplainer({ onGetStarted }: ProductExplainerProps) {
 
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+          {/* Testimonials Row */}
+          <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            {[{
+              quote: "I shipped a moodboard in one afternoon.",
+              author: "Lina, Art Director"
+            },{
+              quote: "It feels like pair-programming, but for visuals.",
+              author: "Devin, Indie Dev"
+            },{
+              quote: "Our ads look better and took half the time.",
+              author: "Sam, Growth Marketer"
+            }].map((t, i) => (
+              <div key={i} className="p-5 rounded-xl border border-mono-200 bg-white/70">
+                <p className="text-mono-800">“{t.quote}”</p>
+                <p className="text-sm text-mono-500 mt-2">{t.author}</p>
+              </div>
+            ))}
+          </div>
           <Card className="text-center border-mono-200 shadow-none">
             <CardHeader>
               <div className="w-12 h-12 bg-mono-900 rounded-lg flex items-center justify-center mx-auto mb-4">
@@ -141,19 +172,25 @@ export function ProductExplainer({ onGetStarted }: ProductExplainerProps) {
         </div>
 
         {/* CTA Section */}
-        <div className="text-center bg-mono-900 rounded-xl p-12 text-white mb-16">
-          <h2 className="text-3xl font-bold mb-4">Ready to get started?</h2>
-          <p className="text-xl mb-8 text-mono-200">
-            Transform your creative ideas into high-performing prompts.
-          </p>
-          <Button
-            onClick={onGetStarted}
-            size="lg"
-            className="bg-white text-mono-900 hover:bg-mono-100 text-lg px-8 py-4 h-auto rounded-lg font-medium"
-          >
-            Get Started
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </Button>
+        <div className="relative text-center rounded-2xl p-12 mb-16 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 opacity-90" />
+          <div className="relative">
+            <h2 className="text-3xl font-bold mb-3 text-white">Launch something beautiful today</h2>
+            <p className="text-lg mb-6 text-white/80">
+              Faster ideation, clearer prompts, better images.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                onClick={onGetStarted}
+                size="lg"
+                className="bg-white text-mono-900 hover:bg-mono-100 text-lg px-8 py-4 h-auto rounded-lg font-medium"
+              >
+                Get Started
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+              <a href="#how-it-works" className="text-white/80 text-sm underline-offset-4 hover:underline">See how it works</a>
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
