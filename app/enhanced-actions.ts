@@ -228,7 +228,7 @@ export async function applyCustomDirection(
   }
 
   try {
-    const model = openai("gpt-4o-mini", {
+    const model = openai("gpt5-mini", {
       apiKey: apiKeys.openaiKey,
     })
 
@@ -275,7 +275,7 @@ Return ONLY the optimized prompt that seamlessly integrates the user instruction
 
           // Track usage for improvement
           if (onTrackUsage) {
-            onTrackUsage("gpt-4o-mini", 400)
+            onTrackUsage("gpt5-mini", 400)
           }
 
           return {
@@ -384,15 +384,18 @@ export async function evaluatePromptsWithCriteria(
   }
 
   try {
-    // Use GPT-4o-mini for image analysis and evaluation
-    const model = openai("gpt-4o-mini", {
+    // Use gpt5-mini for image analysis and evaluation
+    const miniModel = openai("gpt5-mini", {
+      apiKey: apiKeys.openaiKey,
+    })
+    const nanoModel = openai("gpt5-nano", {
       apiKey: apiKeys.openaiKey,
     })
 
     // Test API availability
     try {
       await generateText({
-        model,
+        model: nanoModel,
         prompt: "Test",
         maxTokens: 1,
       })
@@ -403,14 +406,14 @@ export async function evaluatePromptsWithCriteria(
 
     // Track usage for test call
     if (onTrackUsage) {
-      onTrackUsage("gpt-4o-mini", 10)
+      onTrackUsage("gpt5-nano", 10)
     }
 
     // Analyze favorites for pattern recognition
     let favoriteAnalysis = ""
     if (favorites.length > 0) {
       const { text: analysis } = await generateText({
-        model,
+        model: miniModel,
         prompt: `Analyze these favorite images briefly to understand user preferences:
 
 ${favorites
@@ -427,11 +430,11 @@ Provide 2-3 sentences about visual patterns and preferences.`,
 
       // Track usage for favorites analysis
       if (onTrackUsage) {
-        onTrackUsage("gpt-4o-mini", 300)
+        onTrackUsage("gpt5-mini", 300)
       }
     }
 
-    // Evaluate each prompt individually using GPT-4o-mini with custom criteria
+    // Evaluate each prompt individually using gpt5-mini with custom criteria
     const evaluatedPrompts = await Promise.all(
       prompts.map(async (prompt) => {
         const criteriaDescriptions = Object.entries(criteria.criteria)
@@ -443,7 +446,7 @@ Provide 2-3 sentences about visual patterns and preferences.`,
 
         try {
           const { text: evaluation } = await generateText({
-            model,
+            model: miniModel,
             prompt: `Evaluate this AI image prompt and generated image using these SPECIFIC custom criteria:
 
 PROMPT: "${prompt.text}"
@@ -468,7 +471,7 @@ Respond with ONLY valid JSON (no markdown):
 
           // Track usage for individual evaluation
           if (onTrackUsage) {
-            onTrackUsage("gpt-4o-mini", 800)
+            onTrackUsage("gpt5-mini", 800)
           }
 
           // Clean the response to remove any markdown formatting
@@ -514,7 +517,7 @@ Respond with ONLY valid JSON (no markdown):
     // Generate comparative analysis and recommendations using a single call
     try {
       const { text: combinedAnalysis } = await generateText({
-        model,
+        model: miniModel,
         prompt: `Using the following custom criteria and evaluation results, write a concise comparison (3-4 sentences) and then list 5 specific, actionable recommendations. Return ONLY valid JSON with the keys \"comparison\" (string) and \"recommendations\" (array of 5 strings). No markdown.\n\nCRITERIA DEFINITIONS:\n${Object.entries(criteria.criteria)
           .map(([key, criterion]) => `${criterion.name}: ${criterion.description} (${Math.round(criterion.weight * 100)}%)`)
           .join("\n")}\n\nCURRENT PERFORMANCE:\n${evaluatedPrompts
@@ -524,7 +527,7 @@ Respond with ONLY valid JSON (no markdown):
 
       // Track usage
       if (onTrackUsage) {
-        onTrackUsage("gpt-4o-mini", 800)
+        onTrackUsage("gpt5-mini", 800)
       }
 
       const cleanCombined = combinedAnalysis.replace(/```json\s*|\s*```/g, "").trim()
@@ -575,7 +578,7 @@ export async function analyzeFavoritePatterns(
   }
 
   try {
-    const model = openai("gpt-4o-mini", {
+    const model = openai("gpt5-mini", {
       apiKey: apiKeys.openaiKey,
     })
 
@@ -607,7 +610,7 @@ Respond with ONLY valid JSON (no markdown):
 
     // Track usage for analysis
     if (onTrackUsage) {
-      onTrackUsage("gpt-4o-mini", 600)
+      onTrackUsage("gpt5-mini", 600)
     }
 
     // Clean the response to remove any markdown formatting
@@ -651,7 +654,7 @@ export async function improvePromptsSelectively(
   }
 
   try {
-    const model = openai("gpt-4o-mini", {
+    const model = openai("gpt5-mini", {
       apiKey: apiKeys.openaiKey,
     })
 
@@ -681,7 +684,7 @@ First, analyze the generated image carefully. Consider:
 
 EVALUATION FRAMEWORK:
 ${Object.entries(criteria.criteria)
-  .map(([key, criterion]) => `• ${criterion.name}: ${criterion.description} (Weight: ${Math.round(criterion.weight * 100)}%, Current: ${prompt.scores?.[key] || 0}/10)`)
+  .map(([key, criterion]) => `• ${criterion.name}: ${criterion.description} (Weight: ${Math.round(criterion.weight * 100)}%, Current: ${prompt.scores?.[key] || 0}/10)`) 
   .join("\n")}
 
 Overall Performance: ${prompt.scores?.overall?.toFixed(1) || 0}/10
@@ -717,7 +720,7 @@ Return ONLY the optimized prompt that implements the selected improvements.`,
 
           // Track usage for improvement
           if (onTrackUsage) {
-            onTrackUsage("gpt-4o-mini", 600)
+            onTrackUsage("gpt5-mini", 600)
           }
 
           return {
