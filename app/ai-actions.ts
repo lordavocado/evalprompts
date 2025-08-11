@@ -51,7 +51,7 @@ export async function generateCustomContent(
   }
 
   try {
-    const model = openai("gpt-5-mini", {
+    const model = openai("gpt-4o-mini", {
       apiKey: apiKeys.openaiKey,
     })
 
