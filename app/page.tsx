@@ -105,6 +105,7 @@ export default function PromptEvaluator() {
   const [variationMode, setVariationMode] = useState<VariationMode>("variations")
   const [hasGeneratedImages, setHasGeneratedImages] = useState(false)
   const [usedMockContent, setUsedMockContent] = useState(false)
+  const [showImprovePrompts, setShowImprovePrompts] = useState(false)
 
   // Dynamic SEO based on current step and user input
   const getSEOProps = () => {
