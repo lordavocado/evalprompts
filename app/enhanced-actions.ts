@@ -25,85 +25,27 @@ interface FavoriteImage {
   notes?: string
 }
 
-// Heuristic prompt rewriter used when an AI key is unavailable or an error occurs
-function rewritePromptWithoutAI(originalPrompt: string, direction: string): string {
-  const text = (originalPrompt || "").trim()
-  if (!text) return direction.trim()
-
-  // Extract and preserve any "Negative prompt:" section
-  const negativeMatch = text.match(/Negative prompt:\s*[\s\S]*$/i)
-  const negativeSection = negativeMatch ? negativeMatch[0].trim() : ""
-  const base = negativeMatch ? text.slice(0, negativeMatch.index).trim() : text
-
-  // Split into sentences to identify the core subject/scene
-  const sentences = base.split(/(?<=[.!?])\s+/).filter(Boolean)
-  const subjectSentence = sentences[0] || base
-  const remainder = sentences.slice(1).join(" ")
-
-  // Try to preserve common technical hints (aspect ratio, focal length, etc.)
-  const aspectMatch = base.match(/\b(\d+:\d+)\b\s*aspect ratio/i)
-  const aspectText = aspectMatch ? `Captured in a ${aspectMatch[1]} aspect ratio.` : ""
-  const focalMatch = base.match(/Use a [^.!?]+/i)
-  const focalText = focalMatch ? `${focalMatch[0].trim()}.` : ""
-
-  // Build a clean, direction-led prompt
-  const cleanedSubject = subjectSentence.replace(/^(A|An|The)\s+/i, "").trim()
-  const rewrittenCore = `A ${cleanedSubject} with an emphasis on ${direction.toLowerCase()}.`
-
-  const refinedDetails = remainder
-    ? `Refine the scene so all details align with this direction: ${direction.toLowerCase()}. ${remainder}`
-    : `Refine composition, lighting, and styling to embody this direction.`
-
-  const finalPrompt = [rewrittenCore, refinedDetails, aspectText, focalText]
-    .filter(Boolean)
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim()
-
-  return negativeSection ? `${finalPrompt} ${negativeSection}` : finalPrompt
-}
+// Heuristic prompt rewriter removed to enforce API-key-only behavior
 
 const PLACEHOLDER_MARKER = "placeholder.svg"
-
-// Mock image generation for demonstration
-export async function generateImagesMock(prompts: string[], model: FluxModel): Promise<string[]> {
-  console.log(`Using mock image generation with ${model.name}...`)
-  await new Promise((resolve) => setTimeout(resolve, 2000))
-
-  return prompts.map((prompt) => {
-    const encodedPrompt = encodeURIComponent(`${prompt} (${model.name})`)
-    return `/placeholder.svg?height=400&width=400&query=${encodedPrompt}`
-  })
-}
 
 export async function generateImages(
   prompts: string[],
   model: FluxModel,
   apiKeys: { openaiKey?: string; falKey?: string },
 ): Promise<string[]> {
-  console.log("🎨 Starting image generation...")
-  console.log("Model:", model.name)
-  console.log("Prompts count:", prompts.length)
-  console.log("Fal AI key provided:", !!apiKeys.falKey)
-  
   if (!apiKeys.falKey) {
-    console.log("❌ Fal AI key not provided, using mock generation")
-    return generateImagesMock(prompts, model)
+    throw new Error("Fal AI API key is required to generate images.")
   }
 
   // Validate Fal AI key format
   if (apiKeys.falKey.length < 10 || !/^[!-~]+$/.test(apiKeys.falKey)) {
-    console.error("❌ Invalid Fal AI key format")
-    console.log("Falling back to mock generation")
-    return generateImagesMock(prompts, model)
+    throw new Error("Invalid Fal AI key format.")
   }
 
   const imageUrls: string[] = []
-  let successfulGenerations = 0
 
   try {
-    console.log("🔧 Configuring Fal AI client...")
-    
     // Dynamically import Fal to avoid build issues
     const fal = await import("@fal-ai/serverless-client")
 
@@ -111,30 +53,20 @@ export async function generateImages(
     fal.config({
       credentials: apiKeys.falKey,
     })
-    
-    console.log("✅ Fal AI client configured successfully")
-    console.log("🔑 Using Fal API key:", apiKeys.falKey.substring(0, 8) + "...")
 
     for (let i = 0; i < prompts.length; i++) {
       const prompt = prompts[i]
       try {
-        console.log(`🖼️ [${i + 1}/${prompts.length}] Generating image with ${model.name}`)
-        console.log(`📝 Prompt: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`)
-
-        // Use model-specific parameters based on Fal.ai API spec
         const parameters = {
           prompt: prompt,
-          aspect_ratio: "1:1", // default unless user adds aspect hints
+          aspect_ratio: "1:1",
           num_inference_steps: model.parameters?.num_inference_steps?.[1] || 28,
           guidance_scale: model.parameters?.guidance_scale?.[1] || 3.5,
           num_images: 1,
           enable_safety_checker: true,
-          output_format: "jpeg", // Specify output format
-          sync_mode: false, // Async by default for better performance
+          output_format: "jpeg",
+          sync_mode: false,
         }
-
-        console.log("⚙️ Parameters:", JSON.stringify(parameters, null, 2))
-        console.log(`🌐 Endpoint: ${model.endpoint}`)
 
         let result: any = null
         let usedEndpoint = model.endpoint
@@ -145,14 +77,11 @@ export async function generateImages(
             input: parameters,
             logs: true,
             pollInterval: 1000,
-            timeout: 60000, // 60 second timeout
+            timeout: 60000,
           })
         } catch (endpointError: any) {
-          console.warn(`⚠️ Primary endpoint ${model.endpoint} failed:`, endpointError.message)
-          
           // Fallback to flux/dev if the current endpoint fails
           if (model.endpoint !== "fal-ai/flux/dev") {
-            console.log("🔄 Falling back to fal-ai/flux/dev endpoint...")
             usedEndpoint = "fal-ai/flux/dev"
             result = await fal.subscribe("fal-ai/flux/dev", {
               input: parameters,
@@ -161,52 +90,26 @@ export async function generateImages(
               timeout: 60000,
             })
           } else {
-            throw endpointError // Re-throw if even the fallback fails
+            throw endpointError
           }
         }
 
-        console.log(`📨 Fal AI Response from ${usedEndpoint}:`, JSON.stringify(result, null, 2))
-
         if (result && result.images && result.images.length > 0) {
           imageUrls.push(result.images[0].url)
-          successfulGenerations++
-          console.log(`✅ [${i + 1}/${prompts.length}] Successfully generated image`)
-          console.log(`🔗 Image URL: ${result.images[0].url}`)
         } else {
-          console.log(`❌ [${i + 1}/${prompts.length}] No images in result, using placeholder`)
-          console.log("Full result:", result)
-          imageUrls.push(`/placeholder.svg?height=400&width=400&query=${encodeURIComponent(prompt)}`)
+          throw new Error("Fal AI returned no images for a prompt.")
         }
       } catch (error: any) {
-        console.error(`❌ [${i + 1}/${prompts.length}] Error generating image:`)
-        console.error("Error details:", error)
-        console.error("Error message:", error?.message)
-        console.error("Error status:", error?.status)
-        console.error("Error response:", error?.response?.data)
-        imageUrls.push(`/placeholder.svg?height=400&width=400&query=${encodeURIComponent(prompt)}`)
+        throw new Error(error?.message || String(error))
       }
-    }
-
-    // Note: Usage tracking is handled client-side to avoid server/client reference issues
-
-    console.log(`🎯 Generation Summary: ${successfulGenerations}/${prompts.length} successful`)
-    
-    if (successfulGenerations === 0) {
-      console.log("⚠️ All image generations failed - check Fal AI key and account status")
     }
 
     return imageUrls
   } catch (importError: any) {
-    console.error("❌ Critical error with Fal AI service:")
-    console.error("Import error:", importError)
-    console.error("Error message:", importError?.message)
-    console.error("Error stack:", importError?.stack)
-    console.log("🔄 Falling back to mock generation")
-    return generateImagesMock(prompts, model)
+    throw new Error(importError?.message || String(importError))
   }
 }
 
-// Apply custom direction to improve prompts
 export async function applyCustomDirection(
   prompts: PromptData[],
   direction: string,
@@ -216,15 +119,7 @@ export async function applyCustomDirection(
   onTrackUsage?: (model: string, estimatedTokens: number) => void,
 ): Promise<PromptData[]> {
   if (!apiKeys.openaiKey) {
-    console.log("OpenAI API key not provided, using heuristic rewrite for custom direction")
-    return prompts.map((prompt) => ({
-      ...prompt,
-      text: rewritePromptWithoutAI(prompt.text, direction),
-      imageUrl: undefined,
-      scores: undefined,
-      feedback: undefined,
-      suggestions: undefined,
-    }))
+    throw new Error("OpenAI API key is required to apply custom direction.")
   }
 
   try {
@@ -241,10 +136,9 @@ export async function applyCustomDirection(
 
     const improvedPrompts = await Promise.all(
       prompts.map(async (prompt) => {
-        try {
-          const { text: improvedPrompt } = await generateText({
-            model,
-            prompt: `You are an expert AI prompt engineer. Your task is to improve an image generation prompt by integrating specific user instructions while maintaining quality and coherence.
+        const { text: improvedPrompt } = await generateText({
+          model,
+          prompt: `You are an expert AI prompt engineer. Your task is to improve an image generation prompt by integrating specific user instructions while maintaining quality and coherence.
 
 CURRENT PROMPT: "${prompt.text}"
 
@@ -271,103 +165,27 @@ PROMPT ENGINEERING GUIDELINES:
 - Ensure the instruction is implemented through concrete, visual descriptions
 
 Return ONLY the optimized prompt that seamlessly integrates the user instruction.`,
-          })
+        })
 
-          // Track usage for improvement
-          if (onTrackUsage) {
-            onTrackUsage("gpt-5-mini", 400)
-          }
+        // Track usage for improvement
+        if (onTrackUsage) {
+          onTrackUsage("gpt-5-mini", 400)
+        }
 
-          return {
-            ...prompt,
-            text: improvedPrompt.trim(),
-            imageUrl: undefined,
-            scores: undefined,
-            feedback: undefined,
-            suggestions: undefined,
-          }
-        } catch (error: any) {
-          console.error("Error improving prompt:", error?.message || error)
-          return {
-            ...prompt,
-            text: rewritePromptWithoutAI(prompt.text, direction),
-            imageUrl: undefined,
-            scores: undefined,
-            feedback: undefined,
-            suggestions: undefined,
-          }
+        return {
+          ...prompt,
+          text: improvedPrompt.trim(),
+          imageUrl: undefined,
+          scores: undefined,
+          feedback: undefined,
+          suggestions: undefined,
         }
       }),
     )
 
     return improvedPrompts
   } catch (error: any) {
-    console.error("Error applying custom direction:", error?.message || error)
-    return prompts.map((prompt) => ({
-      ...prompt,
-      text: rewritePromptWithoutAI(prompt.text, direction),
-      imageUrl: undefined,
-      scores: undefined,
-      feedback: undefined,
-      suggestions: undefined,
-    }))
-  }
-}
-
-// Mock evaluation function for when OpenAI API is not available
-async function mockEvaluatePrompts(prompts: PromptData[], criteria: EvaluationCriteria, favorites: FavoriteImage[]) {
-  console.log("Using mock evaluation")
-  await new Promise((resolve) => setTimeout(resolve, 3000))
-
-  const evaluatedPrompts = prompts.map((prompt) => {
-    const baseScore = Math.min(Math.max(prompt.text.length / 20, 3), 8)
-    const variation = Math.random() * 2 - 1
-
-    const mockScores: Record<string, number> & { overall: number } = { overall: 0 }
-    let totalWeightedScore = 0
-
-    Object.entries(criteria.criteria).forEach(([key, criterion]) => {
-      const score = Math.min(Math.max(baseScore + variation + Math.random() * 2 - 1, 1), 10)
-      mockScores[key] = Math.round(score * 10) / 10
-      totalWeightedScore += score * criterion.weight
-    })
-
-    mockScores.overall = Math.round(totalWeightedScore * 10) / 10
-
-    const mockFeedback = `This prompt shows ${mockScores.overall >= 7 ? "strong" : mockScores.overall >= 5 ? "moderate" : "limited"} potential for ${criteria.name.toLowerCase()}. ${
-      mockScores.overall >= 7
-        ? "The prompt demonstrates good alignment with your custom criteria."
-        : "Consider refining based on your specific success criteria."
-    }`
-
-    return {
-      ...prompt,
-      scores: mockScores,
-      feedback: mockFeedback,
-      suggestions: [],
-    }
-  })
-
-  const bestPrompt = evaluatedPrompts.reduce((best, current) =>
-    (current.scores?.overall || 0) > (best.scores?.overall || 0) ? current : best,
-  )
-
-  const comparison = `Based on your ${criteria.name.toLowerCase()} criteria, Prompt ${bestPrompt.id} performed best with ${bestPrompt.scores?.overall}/10. The prompts show varying effectiveness across your custom evaluation framework.`
-
-  const recommendations = [
-    `Enhance ${Object.values(criteria.criteria)[0].name.toLowerCase()} by adding more specific details`,
-    `Improve ${Object.values(criteria.criteria)[1].name.toLowerCase()} based on your success definition`,
-    `Consider patterns from your favorite images when refining prompts`,
-    `Balance all criteria according to your custom weightings`,
-    `Add technical specifications that align with your evaluation framework`,
-  ]
-
-  return {
-    prompts: evaluatedPrompts,
-    comparison,
-    bestPrompt: bestPrompt.text,
-    recommendations,
-    criteriaUsed: criteria,
+    throw new Error(error?.message || String(error))
   }
 }
 
@@ -379,8 +197,7 @@ export async function evaluatePromptsWithCriteria(
   onTrackUsage?: (model: string, estimatedTokens: number) => void,
 ) {
   if (!apiKeys.openaiKey) {
-    console.log("OpenAI API key not provided, using mock evaluation")
-    return mockEvaluatePrompts(prompts, criteria, favorites)
+    throw new Error("OpenAI API key is required to evaluate prompts.")
   }
 
   try {
@@ -400,8 +217,7 @@ export async function evaluatePromptsWithCriteria(
         maxTokens: 1,
       })
     } catch (testError: any) {
-      console.log("OpenAI API test failed:", testError?.message || testError)
-      return mockEvaluatePrompts(prompts, criteria, favorites)
+      throw new Error(`OpenAI API test failed: ${testError?.message || String(testError)}`)
     }
 
     // Track usage for test call
@@ -444,10 +260,9 @@ Provide 2-3 sentences about visual patterns and preferences.`,
           )
           .join("\n")
 
-        try {
-          const { text: evaluation } = await generateText({
-            model: miniModel,
-            prompt: `Evaluate this AI image prompt and generated image using these SPECIFIC custom criteria:
+        const { text: evaluation } = await generateText({
+          model: miniModel,
+          prompt: `Evaluate this AI image prompt and generated image using these SPECIFIC custom criteria:
 
 PROMPT: "${prompt.text}"
 IMAGE: ${prompt.imageUrl}
@@ -467,95 +282,74 @@ Respond with ONLY valid JSON (no markdown):
   "overall": [weighted average],
   "feedback": "[2-3 sentences explaining the scores based on the specific criteria definitions]"
 }`,
-          })
+        })
 
-          // Track usage for individual evaluation
-          if (onTrackUsage) {
-            onTrackUsage("gpt-5-mini", 800)
+        // Track usage for individual evaluation
+        if (onTrackUsage) {
+          onTrackUsage("gpt-5-mini", 800)
+        }
+
+        // Clean the response to remove any markdown formatting
+        const cleanEvaluation = evaluation.replace(/```json\s*|\s*```/g, "").trim()
+        const parsed = JSON.parse(cleanEvaluation)
+
+        let weightedScore = 0
+        for (const [key, criterion] of Object.entries(criteria.criteria)) {
+          if (parsed[key]) {
+            weightedScore += parsed[key] * criterion.weight
           }
+        }
 
-          // Clean the response to remove any markdown formatting
-          const cleanEvaluation = evaluation.replace(/```json\s*|\s*```/g, "").trim()
-          const parsed = JSON.parse(cleanEvaluation)
+        const scores: Record<string, number> & { overall: number } = {
+          ...parsed,
+          overall: Math.round(weightedScore * 10) / 10,
+        }
 
-          let weightedScore = 0
-          for (const [key, criterion] of Object.entries(criteria.criteria)) {
-            if (parsed[key]) {
-              weightedScore += parsed[key] * criterion.weight
-            }
-          }
-
-          const scores: Record<string, number> & { overall: number } = {
-            ...parsed,
-            overall: Math.round(weightedScore * 10) / 10,
-          }
-
-          return {
-            ...prompt,
-            scores,
-            feedback: parsed.feedback,
-            suggestions: [],
-          }
-        } catch (error: any) {
-          console.error("Error evaluating individual prompt:", error?.message || error)
-
-          const defaultScores: Record<string, number> & { overall: number } = { overall: 5 }
-          for (const key of Object.keys(criteria.criteria)) {
-            defaultScores[key] = 5
-          }
-
-          return {
-            ...prompt,
-            scores: defaultScores,
-            feedback: "Error evaluating prompt - using default scores",
-            suggestions: [],
-          }
+        return {
+          ...prompt,
+          scores,
+          feedback: parsed.feedback,
+          suggestions: [],
         }
       }),
     )
 
     // Generate comparative analysis and recommendations using a single call
-    try {
-      const { text: combinedAnalysis } = await generateText({
-        model: miniModel,
-        prompt: `Using the following custom criteria and evaluation results, write a concise comparison (3-4 sentences) and then list 5 specific, actionable recommendations. Return ONLY valid JSON with the keys \"comparison\" (string) and \"recommendations\" (array of 5 strings). No markdown.\n\nCRITERIA DEFINITIONS:\n${Object.entries(criteria.criteria)
-          .map(([key, criterion]) => `${criterion.name}: ${criterion.description} (${Math.round(criterion.weight * 100)}%)`)
-          .join("\n")}\n\nCURRENT PERFORMANCE:\n${evaluatedPrompts
-          .map((p, i) => `Prompt ${i + 1}: ${p.scores?.overall?.toFixed(1) || 0}/10 - ${p.feedback}`)
-          .join("\n")}\n`,
-      })
+    const { text: combinedAnalysis } = await generateText({
+      model: miniModel,
+      prompt: `Using the following custom criteria and evaluation results, write a concise comparison (3-4 sentences) and then list 5 specific, actionable recommendations. Return ONLY valid JSON with the keys \"comparison\" (string) and \"recommendations\" (array of 5 strings). No markdown.\n\nCRITERIA DEFINITIONS:\n${Object.entries(criteria.criteria)
+        .map(([key, criterion]) => `${criterion.name}: ${criterion.description} (${Math.round(criterion.weight * 100)}%)`)
+        .join("\n")}\n\nCURRENT PERFORMANCE:\n${evaluatedPrompts
+        .map((p, i) => `Prompt ${i + 1}: ${p.scores?.overall?.toFixed(1) || 0}/10 - ${p.feedback}`)
+        .join("\n")}\n`,
+    })
 
-      // Track usage
-      if (onTrackUsage) {
-        onTrackUsage("gpt-5-mini", 800)
-      }
+    // Track usage
+    if (onTrackUsage) {
+      onTrackUsage("gpt-5-mini", 800)
+    }
 
-      const cleanCombined = combinedAnalysis.replace(/```json\s*|\s*```/g, "").trim()
-      const parsedCombined = JSON.parse(cleanCombined)
-      const comparison: string = parsedCombined.comparison || ""
-      const recommendations: string[] = Array.isArray(parsedCombined.recommendations)
-        ? parsedCombined.recommendations.slice(0, 5)
-        : []
+    const cleanCombined = combinedAnalysis.replace(/```json\s*|\s*```/g, "").trim()
+    const parsedCombined = JSON.parse(cleanCombined)
+    const comparison: string = parsedCombined.comparison || ""
+    const recommendations: string[] = Array.isArray(parsedCombined.recommendations)
+      ? parsedCombined.recommendations.slice(0, 5)
+      : []
 
-      // Identify best prompt
-      const bestPrompt = evaluatedPrompts.reduce((best, current) =>
-        (current.scores?.overall || 0) > (best.scores?.overall || 0) ? current : best,
-      )
+    // Identify best prompt
+    const bestPrompt = evaluatedPrompts.reduce((best, current) =>
+      (current.scores?.overall || 0) > (best.scores?.overall || 0) ? current : best,
+    )
 
-      return {
-        prompts: evaluatedPrompts,
-        comparison,
-        bestPrompt: bestPrompt.text,
-        recommendations,
-        criteriaUsed: criteria,
-      }
-    } catch (comparisonError) {
-      console.log("Error generating comparison+recommendations, using mock comparison")
-      return mockEvaluatePrompts(prompts, criteria, favorites)
+    return {
+      prompts: evaluatedPrompts,
+      comparison,
+      bestPrompt: bestPrompt.text,
+      recommendations,
+      criteriaUsed: criteria,
     }
   } catch (error: any) {
-    console.error("Error with OpenAI evaluation:", error?.message || error)
-    return mockEvaluatePrompts(prompts, criteria, favorites)
+    throw new Error(error?.message || String(error))
   }
 }
 
@@ -569,12 +363,11 @@ export async function analyzeFavoritePatterns(
   recommendations: string[]
   styleInsights: string[]
 }> {
-  if (!apiKeys.openaiKey || favorites.length < 2) {
-    return {
-      analysis: "Need at least 2 favorite images and OpenAI API key to analyze patterns.",
-      recommendations: [],
-      styleInsights: [],
-    }
+  if (!apiKeys.openaiKey) {
+    throw new Error("OpenAI API key is required to analyze favorite patterns.")
+  }
+  if (favorites.length < 2) {
+    throw new Error("Need at least 2 favorite images to analyze patterns.")
   }
 
   try {
@@ -623,12 +416,7 @@ Respond with ONLY valid JSON (no markdown):
       styleInsights: parsed.styleInsights || [],
     }
   } catch (error: any) {
-    console.error("Error analyzing favorite patterns:", error?.message || error)
-    return {
-      analysis: "Error analyzing favorite patterns. Please try again.",
-      recommendations: [],
-      styleInsights: [],
-    }
+    throw new Error(error?.message || String(error))
   }
 }
 
@@ -642,15 +430,7 @@ export async function improvePromptsSelectively(
   onTrackUsage?: (model: string, estimatedTokens: number) => void,
 ): Promise<PromptData[]> {
   if (!apiKeys.openaiKey) {
-    console.log("OpenAI API key not provided, using mock improvement")
-    return prompts.map((prompt) => ({
-      ...prompt,
-      text: prompt.text + ", enhanced with selected improvements",
-      imageUrl: undefined,
-      scores: undefined,
-      feedback: undefined,
-      suggestions: undefined,
-    }))
+    throw new Error("OpenAI API key is required to improve prompts.")
   }
 
   try {
@@ -732,33 +512,18 @@ Return ONLY the optimized prompt that implements the selected improvements.`,
             suggestions: undefined,
           }
         } catch (error: any) {
-          console.error("Error improving prompt:", error?.message || error)
-          return {
-            ...prompt,
-            imageUrl: undefined,
-            scores: undefined,
-            feedback: undefined,
-            suggestions: undefined,
-          }
+          throw new Error(error?.message || String(error))
         }
       }),
     )
 
     return improvedPrompts
   } catch (error: any) {
-    console.error("Error improving prompts:", error?.message || error)
-    return prompts.map((prompt) => ({
-      ...prompt,
-      text: prompt.text + ", enhanced with selected improvements",
-      imageUrl: undefined,
-      scores: undefined,
-      feedback: undefined,
-      suggestions: undefined,
-    }))
+    throw new Error(error?.message || String(error))
   }
 }
 
 // Legacy functions for backward compatibility
-export const improvePrompts = improvePromptsSelectively
-export const applyRecommendations = improvePromptsSelectively
-export const refinePromptsWithCriteria = improvePromptsSelectively
+export const improvePrompts = evaluatePromptsWithCriteria
+export const applyRecommendations = evaluatePromptsWithCriteria
+export const refinePromptsWithCriteria = evaluatePromptsWithCriteria

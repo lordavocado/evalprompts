@@ -7,7 +7,6 @@ import type { EvaluationCriteria } from "@/types/evaluation-criteria"
 interface GeneratedContent {
   criteria: EvaluationCriteria
   prompts: string[]
-  isMock: boolean
 }
 
 // Helper to safely extract and parse JSON from LLM output
@@ -41,110 +40,14 @@ function normalizeCriteriaWeights(criteria: EvaluationCriteria["criteria"]): Eva
 
 type VariationMode = "identical" | "variations" | "radical"
 
-// Mock function for when OpenAI is not available
-async function mockGenerateContent(description: string, mode: VariationMode): Promise<GeneratedContent> {
-  console.log(`Using mock content generation with ${mode} mode`)
-  await new Promise((resolve) => setTimeout(resolve, 3000))
-
-  // Analyze description to determine type
-  const lowerDesc = description.toLowerCase()
-  const criteriaType = "custom"
-  let icon = "⚡"
-  let name = "Custom Evaluation"
-  let criteriaDescription = "Tailored evaluation for your specific use case"
-
-  if (lowerDesc.includes("product") || lowerDesc.includes("commercial") || lowerDesc.includes("business")) {
-    icon = "💼"
-    name = "Product & Commercial"
-    criteriaDescription = "Optimized for product photography and commercial use"
-  } else if (lowerDesc.includes("art") || lowerDesc.includes("creative") || lowerDesc.includes("artistic")) {
-    icon = "🎨"
-    name = "Artistic & Creative"
-    criteriaDescription = "Focus on creativity and artistic expression"
-  } else if (lowerDesc.includes("portrait") || lowerDesc.includes("character") || lowerDesc.includes("person")) {
-    icon = "👤"
-    name = "Portrait & Character"
-    criteriaDescription = "Specialized for portraits and character design"
-  } else if (lowerDesc.includes("landscape") || lowerDesc.includes("environment") || lowerDesc.includes("scene")) {
-    icon = "🏞️"
-    name = "Environmental & Scenic"
-    criteriaDescription = "Focus on landscapes and environmental scenes"
-  }
-
-  const mockCriteria: EvaluationCriteria = {
-    id: `custom_${Date.now()}`,
-    name,
-    description: criteriaDescription,
-    icon,
-    criteria: {
-      relevance: {
-        name: "Relevance",
-        description: "How well the image matches your described vision",
-        weight: 0.3,
-      },
-      quality: {
-        name: "Technical Quality",
-        description: "Overall technical execution and visual quality",
-        weight: 0.25,
-      },
-      appeal: {
-        name: "Visual Appeal",
-        description: "Aesthetic attractiveness and visual impact",
-        weight: 0.25,
-      },
-      uniqueness: {
-        name: "Uniqueness",
-        description: "Originality and distinctive characteristics",
-        weight: 0.2,
-      },
-    },
-    evaluationPrompt: `Evaluate this prompt based on custom criteria for: ${description}`,
-    suggestionFocus: [
-      "Add more specific details about the subject",
-      "Include style and mood descriptors",
-      "Specify technical requirements",
-      "Enhance composition guidance",
-      "Add lighting and atmosphere details",
-    ],
-  }
-
-  // Generate mock prompts based on mode
-  let basePrompts: string[]
-
-  if (mode === "identical") {
-    const singlePrompt = `${description}, highly detailed, professional quality`
-    basePrompts = [singlePrompt, singlePrompt, singlePrompt]
-  } else if (mode === "radical") {
-    basePrompts = [
-      `${description}, photorealistic style, studio lighting, commercial photography`,
-      `${description}, artistic illustration, vibrant colors, creative composition`,
-      `${description}, minimalist design, clean lines, modern aesthetic`,
-    ]
-  } else {
-    // variations mode (default)
-    basePrompts = [
-      `${description}, highly detailed, professional quality`,
-      `${description}, artistic style, enhanced composition, vibrant colors`,
-      `${description}, cinematic lighting, 8K resolution, masterpiece quality`,
-    ]
-  }
-
-  return {
-    criteria: mockCriteria,
-    prompts: basePrompts,
-    isMock: true,
-  }
-}
-
 export async function generateCustomContent(
   description: string,
   apiKeys: { openaiKey?: string; falKey?: string },
   mode: VariationMode = "variations",
 ): Promise<GeneratedContent> {
-  // Check if OpenAI API key is available
+  // Require OpenAI API key
   if (!apiKeys.openaiKey) {
-    console.log("OpenAI API key not provided, using mock generation")
-    return mockGenerateContent(description, mode)
+    throw new Error("OpenAI API key is required to generate criteria and prompts.")
   }
 
   try {
@@ -160,8 +63,7 @@ export async function generateCustomContent(
         maxTokens: 1,
       })
     } catch (testError: any) {
-      console.log("OpenAI API test failed:", testError?.message || testError)
-      return mockGenerateContent(description, mode)
+      throw new Error(`OpenAI API test failed: ${testError?.message || String(testError)}`)
     }
 
     // Generate criteria AND prompts in a single response
@@ -206,14 +108,11 @@ export async function generateCustomContent(
       return {
         criteria,
         prompts: Array.isArray(parsedPrompts) ? parsedPrompts : [description],
-        isMock: false,
       }
     } catch (parseError) {
-      console.error("Error parsing combined AI response:", parseError)
-      return mockGenerateContent(description, mode)
+      throw new Error(`Error parsing combined AI response: ${String(parseError)}`)
     }
   } catch (error: any) {
-    console.error("Error generating custom content:", error?.message || error)
-    return mockGenerateContent(description, mode)
+    throw new Error(error?.message || String(error))
   }
 }

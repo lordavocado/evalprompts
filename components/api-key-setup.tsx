@@ -20,27 +20,20 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
   const [falKey, setFalKey] = useState(existingKeys?.falKey || "")
   const [showOpenaiKey, setShowOpenaiKey] = useState(false)
   const [showFalKey, setShowFalKey] = useState(false)
-  const [skipSetup, setSkipSetup] = useState(false)
   // No separate validate-and-continue flow
 
   const handleContinue = () => {
+    const trimmedOpenai = openaiKey.trim()
+    const trimmedFal = falKey.trim()
+    if (!trimmedOpenai || !trimmedFal) return
     const keys = {
-      openaiKey: openaiKey.trim() || undefined,
-      falKey: falKey.trim() || undefined,
+      openaiKey: trimmedOpenai,
+      falKey: trimmedFal,
     }
     onComplete(keys)
   }
 
-  const handleSkip = () => {
-    setSkipSetup(true)
-    onComplete({})
-  }
-
   // Removed inline status indicator icons for a cleaner UI
-
-  if (skipSetup) {
-    return null
-  }
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-6">
@@ -48,9 +41,9 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center gap-2 text-2xl">
             <Key className="w-6 h-6" />
-            API Keys (optional)
+            API Keys (required)
           </CardTitle>
-          <CardDescription>Add keys for the best experience. You can also continue without them or use demo mode.</CardDescription>
+          <CardDescription>Enter your OpenAI and Fal AI keys to use the app.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <Alert className="bg-mono-50 border-mono-200">
@@ -63,7 +56,7 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="openai-key" className="flex items-center gap-2">
-                <span>OpenAI (evaluation) — optional</span>
+                <span>OpenAI (evaluation)</span>
               </Label>
               <div className="relative">
                 <Input
@@ -101,7 +94,7 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
 
             <div className="space-y-2">
               <Label htmlFor="fal-key" className="flex items-center gap-2">
-                <span>Fal AI (images) — optional</span>
+                <span>Fal AI (images)</span>
               </Label>
               <div className="relative">
                 <Input
@@ -143,22 +136,11 @@ export function ApiKeySetup({ onComplete, existingKeys }: ApiKeySetupProps) {
               onClick={handleContinue} 
               size="lg" 
               className="w-full"
+              disabled={!openaiKey.trim() || !falKey.trim()}
             >
               <CheckCircle className="w-4 h-4 mr-2" />
               Continue
             </Button>
-            <Button onClick={handleSkip} variant="outline" size="lg" className="w-full bg-transparent">
-              Use Demo Mode
-            </Button>
-          </div>
-
-          <div className="text-center text-sm text-mono-600">
-            <p>
-              <strong>With keys:</strong> Full AI evaluation and real image generation.
-            </p>
-            <p>
-              <strong>Without keys:</strong> Fast mock evaluation you can upgrade later.
-            </p>
           </div>
         </CardContent>
       </Card>
