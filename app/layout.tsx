@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     "prompt engineering",
     "AI image generation",
     "prompt improvement",
-    "GPT-4 evaluation",
+    "GPT-5 evaluation",
     "Flux AI prompts",
     "creative AI tools",
     "prompt analysis",
@@ -150,7 +150,7 @@ const jsonLd = {
   featureList: [
     "AI-powered prompt evaluation",
     "Custom evaluation criteria generation",
-    "GPT-4o-mini image analysis",
+    "GPT-5-mini image analysis",
     "Iterative prompt optimization",
     "Real-time image generation",
     "Detailed performance analytics",

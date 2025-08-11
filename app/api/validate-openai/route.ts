@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     // Test the API key with a minimal request
     try {
-      const model = openai("gpt-4o-mini")
+      const model = openai("gpt-5-nano")
 
       await generateText({
         model,
