@@ -157,6 +157,8 @@ const jsonLd = {
   ],
 }
 
+const enableAnalytics = process.env.NEXT_PUBLIC_ENABLE_ANALYTICS === "true"
+
 export default function RootLayout({
   children,
 }: {
@@ -203,7 +205,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Suspense fallback={<div>Loading...</div>}>
           {children}
-          <Analytics />
+          {enableAnalytics ? <Analytics /> : null}
         </Suspense>
       </body>
     </html>

@@ -1,6 +1,6 @@
 "use client"
 
-import Head from "next/head"
+import { useEffect } from "react"
 
 interface SEOHeadProps {
   title?: string
@@ -17,41 +17,65 @@ export function SEOHead({
   url = "https://evalprompts.vercel.app",
   type = "website",
 }: SEOHeadProps) {
-  const fullImageUrl = image.startsWith("http") ? image : `https://evalprompts.vercel.app${image}`
+  useEffect(() => {
+    // Update title
+    if (title) {
+      document.title = title
+    }
 
-  return (
-    <Head>
-      {/* Primary Meta Tags */}
-      <title>{title}</title>
-      <meta name="title" content={title} />
-      <meta name="description" content={description} />
+    const upsertMeta = (selector: string, attrs: Record<string, string>) => {
+      let el = document.querySelector<HTMLMetaElement>(selector)
+      if (!el) {
+        el = document.createElement("meta")
+        document.head.appendChild(el)
+      }
+      Object.entries(attrs).forEach(([k, v]) => el!.setAttribute(k, v))
+    }
 
-      {/* Open Graph / Facebook */}
-      <meta property="og:type" content={type} />
-      <meta property="og:url" content={url} />
-      <meta property="og:title" content={title} />
-      <meta property="og:description" content={description} />
-      <meta property="og:image" content={fullImageUrl} />
-      <meta property="og:image:width" content="1200" />
-      <meta property="og:image:height" content="630" />
-      <meta property="og:site_name" content="EvalPrompts" />
+    const fullImageUrl = image.startsWith("http") ? image : `https://evalprompts.vercel.app${image}`
 
-      {/* Twitter */}
-      <meta property="twitter:card" content="summary_large_image" />
-      <meta property="twitter:url" content={url} />
-      <meta property="twitter:title" content={title} />
-      <meta property="twitter:description" content={description} />
-      <meta property="twitter:image" content={fullImageUrl} />
-      <meta property="twitter:creator" content="@nkjorg" />
+    // Primary
+    upsertMeta('meta[name="title"]', { name: "title", content: title })
+    upsertMeta('meta[name="description"]', { name: "description", content: description })
 
-      {/* LinkedIn specific */}
-      <meta property="og:image:alt" content={title} />
-      <meta property="article:author" content="Nichlas Campos" />
+    // Open Graph
+    upsertMeta('meta[property="og:type"]', { property: "og:type", content: type })
+    upsertMeta('meta[property="og:url"]', { property: "og:url", content: url })
+    upsertMeta('meta[property="og:title"]', { property: "og:title", content: title })
+    upsertMeta('meta[property="og:description"]', { property: "og:description", content: description })
+    upsertMeta('meta[property="og:image"]', { property: "og:image", content: fullImageUrl })
+    upsertMeta('meta[property="og:image:width"]', { property: "og:image:width", content: "1200" })
+    upsertMeta('meta[property="og:image:height"]', { property: "og:image:height", content: "630" })
+    upsertMeta('meta[property="og:site_name"]', { property: "og:site_name", content: "EvalPrompts" })
 
-      {/* Additional SEO tags */}
-      <link rel="canonical" href={url} />
-      <meta name="robots" content="index, follow" />
-      <meta name="googlebot" content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1" />
-    </Head>
-  )
+    // Twitter
+    upsertMeta('meta[name="twitter:card"]', { name: "twitter:card", content: "summary_large_image" })
+    upsertMeta('meta[name="twitter:url"]', { name: "twitter:url", content: url })
+    upsertMeta('meta[name="twitter:title"]', { name: "twitter:title", content: title })
+    upsertMeta('meta[name="twitter:description"]', { name: "twitter:description", content: description })
+    upsertMeta('meta[name="twitter:image"]', { name: "twitter:image", content: fullImageUrl })
+    upsertMeta('meta[name="twitter:creator"]', { name: "twitter:creator", content: "@nkjorg" })
+
+    // LinkedIn specific
+    upsertMeta('meta[property="og:image:alt"]', { property: "og:image:alt", content: title })
+    upsertMeta('meta[property="article:author"]', { property: "article:author", content: "Nichlas Campos" })
+
+    // Canonical
+    let link = document.querySelector<HTMLLinkElement>('link[rel="canonical"]')
+    if (!link) {
+      link = document.createElement("link")
+      link.rel = "canonical"
+      document.head.appendChild(link)
+    }
+    link.href = url
+
+    // Robots
+    upsertMeta('meta[name="robots"]', { name: "robots", content: "index, follow" })
+    upsertMeta('meta[name="googlebot"]', {
+      name: "googlebot",
+      content: "index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1",
+    })
+  }, [title, description, image, url, type])
+
+  return null
 }
