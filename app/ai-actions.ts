@@ -45,14 +45,15 @@ export async function generateCustomContent(
   apiKeys: { openaiKey?: string; falKey?: string },
   mode: VariationMode = "variations",
 ): Promise<GeneratedContent> {
-  // Require OpenAI API key
-  if (!apiKeys.openaiKey) {
+  // Resolve OpenAI API key (client-provided or server env)
+  const resolvedOpenAIKey = apiKeys.openaiKey || process.env.OPENAI_API_KEY
+  if (!resolvedOpenAIKey) {
     throw new Error("OpenAI API key is required to generate criteria and prompts.")
   }
 
   try {
-    const model = openai("gpt-4o-mini", {
-      apiKey: apiKeys.openaiKey,
+    const model = openai("gpt-5-mini", {
+      apiKey: resolvedOpenAIKey,
     })
 
     // Test API availability
