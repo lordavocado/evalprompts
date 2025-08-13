@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Sparkles, Eye, Settings, ArrowLeft, Heart, BarChart3, Info, Wand2 } from "lucide-react"
+import { Loader2, Sparkles, Eye, Settings, ArrowLeft, Heart, Wand2 } from "lucide-react"
 import { ApiKeySetup } from "@/components/api-key-setup"
 import { ImageDescriptionChat } from "@/components/image-description-chat"
 import { useSecureStorage } from "@/hooks/use-secure-storage"
@@ -26,7 +26,6 @@ import { FluxModelSelector } from "@/components/flux-model-selector"
 import { InlineCriteriaEditor } from "@/components/inline-criteria-editor"
 import { ImageFavorites } from "@/components/image-favorites"
 import { ImageDownloadButton } from "@/components/image-download-button"
-import { UsageStatsWidget } from "@/components/usage-stats-widget"
 import { UsageStatsModal } from "@/components/usage-stats-modal"
 import { Progress } from "@/components/ui/progress"
 import { PromptHistoryPanel, CompactPromptHistory } from "@/components/prompt-history-panel"
@@ -34,6 +33,8 @@ import { SelectiveImprovementsSection } from "@/components/selective-improvement
 
 import { CustomDirectionInput } from "@/components/custom-direction-input"
 import { FLUX_MODELS, getModelRecommendations, type FluxModel } from "@/types/flux-models"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface PromptData {
   id: string
@@ -92,6 +93,9 @@ export default function PromptEvaluator() {
     addCustomDirection,
     setPrompts
   } = usePromptHistory()
+  
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [expandedScoresById, setExpandedScoresById] = useState<Record<string, boolean>>({})
   
   const [isGenerating, setIsGenerating] = useState(false)
   const [isEvaluating, setIsEvaluating] = useState(false)
@@ -401,6 +405,9 @@ export default function PromptEvaluator() {
     return "Poor"
   }
 
+  const toggleScores = (id: string) =>
+    setExpandedScoresById((prev) => ({ ...prev, [id]: !prev[id] }))
+
   const handleGetStarted = () => {
     setShowExplainer(false)
     setCurrentStep("api-setup")
@@ -494,11 +501,11 @@ export default function PromptEvaluator() {
 
             <div className="flex items-center justify-center gap-6 text-sm mb-3">
               {(() => {
-                const steps = ["Describe", "Generate", "Evaluate", "Improve"]
+                const steps = ["Describe", "Generate", "Improve"]
                 let active = 0
                 if (currentStep === "description") active = 0
                 else if (currentStep === "generating-content") active = 1
-                else if (currentStep === "evaluation") active = evaluationResult ? 3 : (hasGeneratedImages ? 2 : 1)
+                else if (currentStep === "evaluation") active = hasGeneratedImages ? (evaluationResult ? 2 : 1) : 1
                 return (
                   <div className="flex items-center gap-4">
                     {steps.map((label, idx) => (
@@ -541,23 +548,64 @@ export default function PromptEvaluator() {
             </div>
           </div>
 
-          {/* Usage Stats Widget */}
-          <UsageStatsWidget stats={stats} onOpenModal={() => setShowUsageModal(true)} />
 
-          {/* Inline Criteria Editor */}
+          {/* Controls row: criteria summary + model select + advanced */}
           {customCriteria && (
-            <div className="mb-2 flex items-center gap-2">
-              <InlineCriteriaEditor criteria={customCriteria} onUpdate={setCustomCriteria} />
+            <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="border-mono-300 bg-white text-mono-700">
+                    <span className="mr-2">{customCriteria.icon}</span>
+                    {customCriteria.name}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Customize criteria</DialogTitle>
+                  </DialogHeader>
+                  <InlineCriteriaEditor criteria={customCriteria} onUpdate={setCustomCriteria} />
+                </DialogContent>
+              </Dialog>
+
+              <Select
+                value={selectedFluxModel.id}
+                onValueChange={(val) => {
+                  const next = FLUX_MODELS.find((m) => m.id === val) || selectedFluxModel
+                  setSelectedFluxModel(next)
+                }}
+              >
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="Select model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FLUX_MODELS.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>
+                      {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-mono-600">Model details</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl">
+                  <DialogHeader>
+                    <DialogTitle>{selectedFluxModel.name}</DialogTitle>
+                  </DialogHeader>
+                  <FluxModelSelector
+                    selectedModel={selectedFluxModel}
+                    onSelect={setSelectedFluxModel}
+                    recommendedModels={recommendedModels}
+                  />
+                </DialogContent>
+              </Dialog>
+
+              <Button variant="ghost" size="sm" onClick={() => setShowAdvanced((v) => !v)}>
+                {showAdvanced ? "Hide advanced" : "Show advanced"}
+              </Button>
             </div>
-          )}
-
-          {/* Flux Model Selector */}
-          {customCriteria && (
-            <FluxModelSelector
-              selectedModel={selectedFluxModel}
-              onSelect={setSelectedFluxModel}
-              recommendedModels={recommendedModels}
-            />
           )}
 
           {/* Prompt History Panel */}
@@ -618,33 +666,36 @@ export default function PromptEvaluator() {
 
                   {prompt.scores && customCriteria && (
                     <div className="space-y-3">
-                      <div className="space-y-3">
-                        {Object.entries(customCriteria.criteria).map(([key, criterion]) => {
-                          const value = prompt.scores?.[key] || 0
-                          const percent = Math.round((value / 10) * 100)
-                          return (
-                            <div key={key} className="space-y-1">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="text-mono-500 truncate">{criterion.name}</span>
-                                <span className={`font-medium ${getScoreColor(value)}`}>
-                                  {getScoreLabel(value)} ({value.toFixed(1)})
-                                </span>
-                              </div>
-                              <Progress value={percent} className="h-1.5" />
-                            </div>
-                          )
-                        })}
-                        <div className="flex items-center gap-2 pt-2 border-t">
-                          <Sparkles className="w-4 h-4" />
-                          <span className="font-medium">Overall:</span>
-                          <span className={getScoreColor(prompt.scores.overall)}>
-                            {getScoreLabel(prompt.scores.overall)} ({prompt.scores.overall.toFixed(1)})
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Badge className={`${getScoreColor(prompt.scores.overall)} border-mono-300 bg-white`} variant="outline">
+                          Overall {prompt.scores.overall.toFixed(1)}/10
+                        </Badge>
+                        <Button variant="ghost" size="sm" onClick={() => toggleScores(prompt.id)} className="text-xs">
+                          {expandedScoresById[prompt.id] ? "Hide details" : "View details"}
+                        </Button>
                       </div>
-                      {prompt.feedback && (
-                        <div className="text-xs text-mono-600 bg-mono-50 p-2 rounded">
-                          <strong>AI Feedback:</strong> {prompt.feedback}
+                      {expandedScoresById[prompt.id] && (
+                        <div className="space-y-3">
+                          {Object.entries(customCriteria.criteria).map(([key, criterion]) => {
+                            const value = prompt.scores?.[key] || 0
+                            const percent = Math.round((value / 10) * 100)
+                            return (
+                              <div key={key} className="space-y-1">
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="text-mono-500 truncate">{criterion.name}</span>
+                                  <span className={`font-medium ${getScoreColor(value)}`}>
+                                    {getScoreLabel(value)} ({value.toFixed(1)})
+                                  </span>
+                                </div>
+                                <Progress value={percent} className="h-1.5" />
+                              </div>
+                            )
+                          })}
+                          {prompt.feedback && (
+                            <div className="text-xs text-mono-600 bg-mono-50 p-2 rounded">
+                              <strong>AI Feedback:</strong> {prompt.feedback}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -697,19 +748,22 @@ export default function PromptEvaluator() {
 
           </div>
 
-          {/* Image Favorites - Only show after first generation */}
-          {hasGeneratedImages && (
-            <ImageFavorites
-              favorites={favorites}
-              onRemoveFavorite={removeFavorite}
-              onAnalyzeFavorites={analyzeFavorites}
-              onApplyFavoriteInsights={applyFavoriteInsights}
-            />
-          )}
+          {/* Advanced tools */}
+          {showAdvanced && (
+            <div className="space-y-8">
+              {hasGeneratedImages && (
+                <ImageFavorites
+                  favorites={favorites}
+                  onRemoveFavorite={removeFavorite}
+                  onAnalyzeFavorites={analyzeFavorites}
+                  onApplyFavoriteInsights={applyFavoriteInsights}
+                />
+              )}
 
-          {/* Custom Direction Input - Only show after first generation */}
-          {hasGeneratedImages && customCriteria && (
-            <CustomDirectionInput onApplyDirection={handleCustomDirection} isApplying={isImproving} />
+              {hasGeneratedImages && customCriteria && (
+                <CustomDirectionInput onApplyDirection={handleCustomDirection} isApplying={isImproving} />
+              )}
+            </div>
           )}
 
           {/* Selective Improvements Results */}
@@ -820,34 +874,31 @@ export default function PromptEvaluator() {
             <p className="text-mono-600 mb-4">
               Made with <span className="text-mono-900">♥</span> by Nichlas Campos
             </p>
-            <p className="text-mono-500 text-sm mb-6">Feel free to connect on LinkedIn or X</p>
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setCurrentStep("api-setup")} className="border-mono-300">API Settings</Button>
-                <Button variant="outline" size="sm" onClick={() => setShowUsageModal(true)} className="border-mono-300">Usage Stats</Button>
-              </div>
-              <div className="flex items-center justify-center gap-6">
-                <a
-                  href="https://www.linkedin.com/in/nichlaskvist/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-mono-600 hover:text-mono-900 transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                  </svg>
-                </a>
-                <a
-                  href="https://x.com/nkjorg"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-mono-600 hover:text-mono-900 transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.80l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                </a>
-              </div>
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <Button variant="ghost" size="sm" onClick={() => setCurrentStep("api-setup")}>API settings</Button>
+              <Button variant="ghost" size="sm" onClick={() => setShowUsageModal(true)}>Usage</Button>
+            </div>
+            <div className="flex items-center justify-center gap-6">
+              <a
+                href="https://www.linkedin.com/in/nichlaskvist/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-mono-600 hover:text-mono-900 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                </svg>
+              </a>
+              <a
+                href="https://x.com/nkjorg"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-mono-600 hover:text-mono-900 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.80l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                </svg>
+              </a>
             </div>
           </footer>
         </div>
