@@ -40,10 +40,11 @@ export class ApiClient {
     }
 
     // Test OpenAI key
-    if (this.apiKeys.openaiKey) {
+    const resolvedOpenAIKey = this.apiKeys.openaiKey || process.env.OPENAI_API_KEY
+    if (resolvedOpenAIKey) {
       try {
         const model = openai("gpt-5-nano", {
-          apiKey: this.apiKeys.openaiKey,
+          apiKey: resolvedOpenAIKey,
         })
         
         await generateText({
@@ -84,13 +85,14 @@ export class ApiClient {
    * Generate text using OpenAI with proper error handling
    */
   async generateText(prompt: string, maxTokens?: number): Promise<string> {
-    if (!this.apiKeys.openaiKey) {
+    const resolvedOpenAIKey = this.apiKeys.openaiKey || process.env.OPENAI_API_KEY
+    if (!resolvedOpenAIKey) {
       throw new Error("OpenAI API key not provided")
     }
 
     try {
       const model = openai("gpt-5-mini", {
-        apiKey: this.apiKeys.openaiKey,
+        apiKey: resolvedOpenAIKey,
       })
 
       const { text } = await generateText({
@@ -172,7 +174,7 @@ export class ApiClient {
    * Check if API keys are available
    */
   hasOpenAI(): boolean {
-    return !!this.apiKeys.openaiKey
+    return !!(this.apiKeys.openaiKey || process.env.OPENAI_API_KEY)
   }
 
   hasFal(): boolean {

@@ -4,7 +4,9 @@ import { openai } from "@ai-sdk/openai"
 
 export async function POST(request: NextRequest) {
   try {
-    const { apiKey } = await request.json()
+    const body = await request.json().catch(() => ({}))
+    const postedKey = body?.apiKey as string | undefined
+    const apiKey = (postedKey && postedKey.trim().length > 0 ? postedKey : process.env.OPENAI_API_KEY)?.trim()
     
     if (!apiKey) {
       return NextResponse.json(
@@ -29,7 +31,7 @@ export async function POST(request: NextRequest) {
         model,
         prompt: "Test",
         maxTokens: 1,
-        apiKey: apiKey.trim(),
+        apiKey: apiKey,
       })
 
       return NextResponse.json({ 

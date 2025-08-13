@@ -118,13 +118,14 @@ export async function applyCustomDirection(
   apiKeys: { openaiKey?: string; falKey?: string },
   onTrackUsage?: (model: string, estimatedTokens: number) => void,
 ): Promise<PromptData[]> {
-  if (!apiKeys.openaiKey) {
+  const resolvedOpenAIKey = apiKeys.openaiKey || process.env.OPENAI_API_KEY
+  if (!resolvedOpenAIKey) {
     throw new Error("OpenAI API key is required to apply custom direction.")
   }
 
   try {
-    const model = openai("gpt-4o-mini", {
-      apiKey: apiKeys.openaiKey,
+    const model = openai("gpt-5-mini", {
+      apiKey: resolvedOpenAIKey,
     })
 
     // Get favorite patterns if available
@@ -169,7 +170,7 @@ Return ONLY the optimized prompt that seamlessly integrates the user instruction
 
         // Track usage for improvement
         if (onTrackUsage) {
-          onTrackUsage("gpt-4o-mini", 400)
+          onTrackUsage("gpt-5-mini", 400)
         }
 
         return {
@@ -196,17 +197,18 @@ export async function evaluatePromptsWithCriteria(
   apiKeys: { openaiKey?: string; falKey?: string },
   onTrackUsage?: (model: string, estimatedTokens: number) => void,
 ) {
-  if (!apiKeys.openaiKey) {
+  const resolvedOpenAIKey = apiKeys.openaiKey || process.env.OPENAI_API_KEY
+  if (!resolvedOpenAIKey) {
     throw new Error("OpenAI API key is required to evaluate prompts.")
   }
 
   try {
-    // Use gpt-4o-mini for image analysis and evaluation
-    const miniModel = openai("gpt-4o-mini", {
-      apiKey: apiKeys.openaiKey,
+    // Use gpt-5 family for image analysis and evaluation
+    const miniModel = openai("gpt-5-mini", {
+      apiKey: resolvedOpenAIKey,
     })
-    const nanoModel = openai("gpt-4o-mini", {
-      apiKey: apiKeys.openaiKey,
+    const nanoModel = openai("gpt-5-nano", {
+      apiKey: resolvedOpenAIKey,
     })
 
     // Test API availability
@@ -222,7 +224,7 @@ export async function evaluatePromptsWithCriteria(
 
     // Track usage for test call
     if (onTrackUsage) {
-      onTrackUsage("gpt-4o-mini", 10)
+      onTrackUsage("gpt-5-nano", 10)
     }
 
     // Analyze favorites for pattern recognition
@@ -246,11 +248,11 @@ Provide 2-3 sentences about visual patterns and preferences.`,
 
       // Track usage for favorites analysis
       if (onTrackUsage) {
-        onTrackUsage("gpt-4o-mini", 300)
+        onTrackUsage("gpt-5-mini", 300)
       }
     }
 
-    // Evaluate each prompt individually using gpt-4o-mini with custom criteria
+    // Evaluate each prompt individually using gpt-5-mini with custom criteria
     const evaluatedPrompts = await Promise.all(
       prompts.map(async (prompt) => {
         const criteriaDescriptions = Object.entries(criteria.criteria)
@@ -286,7 +288,7 @@ Respond with ONLY valid JSON (no markdown):
 
         // Track usage for individual evaluation
         if (onTrackUsage) {
-          onTrackUsage("gpt-4o-mini", 800)
+          onTrackUsage("gpt-5-mini", 800)
         }
 
         // Clean the response to remove any markdown formatting
@@ -326,7 +328,7 @@ Respond with ONLY valid JSON (no markdown):
 
     // Track usage
     if (onTrackUsage) {
-      onTrackUsage("gpt-4o-mini", 800)
+      onTrackUsage("gpt-5-mini", 800)
     }
 
     const cleanCombined = combinedAnalysis.replace(/```json\s*|\s*```/g, "").trim()
@@ -363,7 +365,8 @@ export async function analyzeFavoritePatterns(
   recommendations: string[]
   styleInsights: string[]
 }> {
-  if (!apiKeys.openaiKey) {
+  const resolvedOpenAIKey = apiKeys.openaiKey || process.env.OPENAI_API_KEY
+  if (!resolvedOpenAIKey) {
     throw new Error("OpenAI API key is required to analyze favorite patterns.")
   }
   if (favorites.length < 2) {
@@ -371,8 +374,8 @@ export async function analyzeFavoritePatterns(
   }
 
   try {
-    const model = openai("gpt-4o-mini", {
-      apiKey: apiKeys.openaiKey,
+    const model = openai("gpt-5-mini", {
+      apiKey: resolvedOpenAIKey,
     })
 
     const { text: analysisText } = await generateText({
@@ -380,7 +383,7 @@ export async function analyzeFavoritePatterns(
       prompt: `Analyze these favorite images to identify patterns:
 
 ${favorites
-  .map((fav, i) => `Favorite ${i + 1}: "${fav.prompt}" (Score: ${fav.scores?.overall || "N/A"}/10)`)
+  .map((fav, i) => `Favorite ${i + 1}: "${fav.prompt}" (Score: ${fav.scores?.overall || "N/A"}/10)`) 
   .join("\n")}
 
 Respond with ONLY valid JSON (no markdown):
@@ -403,7 +406,7 @@ Respond with ONLY valid JSON (no markdown):
 
     // Track usage for analysis
     if (onTrackUsage) {
-      onTrackUsage("gpt-4o-mini", 600)
+      onTrackUsage("gpt-5-mini", 600)
     }
 
     // Clean the response to remove any markdown formatting
@@ -429,13 +432,14 @@ export async function improvePromptsSelectively(
   apiKeys: { openaiKey?: string; falKey?: string },
   onTrackUsage?: (model: string, estimatedTokens: number) => void,
 ): Promise<PromptData[]> {
-  if (!apiKeys.openaiKey) {
+  const resolvedOpenAIKey = apiKeys.openaiKey || process.env.OPENAI_API_KEY
+  if (!resolvedOpenAIKey) {
     throw new Error("OpenAI API key is required to improve prompts.")
   }
 
   try {
-    const model = openai("gpt-4o-mini", {
-      apiKey: apiKeys.openaiKey,
+    const model = openai("gpt-5-mini", {
+      apiKey: resolvedOpenAIKey,
     })
 
     // Get favorite patterns if available
@@ -500,7 +504,7 @@ Return ONLY the optimized prompt that implements the selected improvements.`,
 
           // Track usage for improvement
           if (onTrackUsage) {
-            onTrackUsage("gpt-4o-mini", 800)
+            onTrackUsage("gpt-5-mini", 800)
           }
 
           return {

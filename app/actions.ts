@@ -34,7 +34,7 @@ export async function generateImages(prompts: string[]): Promise<string[]> {
 }
 
 export async function evaluatePrompts(prompts: PromptData[]) {
-  const model = openai("gpt-4o-mini")
+  const model = openai("gpt-5-mini")
 
   // Evaluate each prompt individually
   const evaluatedPrompts = await Promise.all(
@@ -162,7 +162,7 @@ Provide actionable, specific recommendations.`,
 }
 
 export async function refinePrompts(prompts: PromptData[]): Promise<PromptData[]> {
-  const model = openai("gpt-4o-mini")
+  const model = openai("gpt-5-mini")
 
   const refinedPrompts = await Promise.all(
     prompts.map(async (prompt) => {

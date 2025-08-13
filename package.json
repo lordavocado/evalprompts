@@ -6,7 +6,8 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "check:openai": "node scripts/openai-healthcheck.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "latest",
