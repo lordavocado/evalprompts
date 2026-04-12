@@ -20,9 +20,9 @@ EvalPrompts helps you create better prompts for AI image generators like Midjour
 
 ## Demo
 
-![EvalPrompts Demo](https://placehold.co/800x400/1a1a2e/FFF?text=EvalPrompts+Demo+GIF)
+![EvalPrompts Demo](public/demo.png)
 
-> 📹 *Add a screencast GIF to show EvalPrompts in action*
+Evaluate prompts and get AI-powered feedback to improve them.
 
 ## Quick Start
 
