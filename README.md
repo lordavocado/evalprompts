@@ -1,30 +1,88 @@
-# AI prompt evaluation tool
+# EvalPrompts
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+AI-powered platform for evaluating and optimizing prompts for image generation.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/lordavocados-projects/v0-ai-prompt-evaluation-tool)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/RDkskAg0sR3)
+![Next.js](https://img.shields.io/badge/Next.js-15-black?style=flat&logo=next.js)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat&logo=typescript)
 
-## Overview
+## What is EvalPrompts?
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+EvalPrompts helps you create better prompts for AI image generators like Midjourney, Stable Diffusion, and Flux.
 
-## Deployment
+**Instead of guessing if your prompt is "good," you get:**
+- Custom evaluation criteria generated from what you want
+- Scores and feedback on every prompt
+- Targeted improvements for weak areas
+- Live image previews with Flux AI
 
-Your project is live at:
+## Quick Start
 
-**[https://vercel.com/lordavocados-projects/v0-ai-prompt-evaluation-tool](https://vercel.com/lordavocados-projects/v0-ai-prompt-evaluation-tool)**
+```bash
+npm install
+npm run dev
+```
 
-## Build your app
-
-Continue building your app on:
-
-**[https://v0.dev/chat/projects/RDkskAg0sR3](https://v0.dev/chat/projects/RDkskAg0sR3)**
+Open http://localhost:3000, add your API keys, and start creating.
 
 ## How It Works
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+```
+1. Describe what you want  →  " portraits with dramatic lighting"
+2. Get evaluation criteria ←  AI generates what "good" means
+3. Generate prompts         ←  Optimized for your criteria
+4. Test with images        ←  Flux AI generates previews
+5. Get scores + feedback  ←  GPT-4o-mini evaluates
+6. Improve iteratively    ←  Fix weak areas, repeat
+```
+
+## Features
+
+| Feature | What it does |
+|---------|-------------|
+| Custom Criteria | Describe your goal, get tailored evaluation rules |
+| Prompt Generation | AI creates optimized prompts for your criteria |
+| Live Preview | Generate real images with Flux AI |
+| Scoring | Get detailed scores with improvement suggestions |
+| Iterative Fix | Improve specific weak areas, not everything |
+| Favorites | Save best results, spot patterns |
+
+## API Keys
+
+Get free keys at:
+- **OpenAI** → https://platform.openai.com/api-keys
+- **Fal AI** → https://fal.ai/
+
+Keys stay in your browser. Nothing is stored server-side.
+
+## Tech Stack
+
+- Next.js 15 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS
+- OpenAI GPT-4o-mini
+- Fal AI Flux
+
+## Project Structure
+
+```
+evalprompts/
+├── app/              # Pages and server actions
+├── components/       # React components
+│   └── ui/        # Base UI components
+├── hooks/         # Custom React hooks
+├── lib/           # Utilities
+└── types/         # TypeScript types
+```
+
+## Contributing
+
+1. Clone the repo
+2. Run `npm install` and `npm run dev`
+3. Make your changes
+4. Test and submit a PR
+
+## License
+
+MIT
