@@ -7,7 +7,7 @@ RUN apk add --no-cache libc6-compat python3 make g++ \
   && corepack enable
 COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock* ./
 RUN if [ -f pnpm-lock.yaml ]; then \
-      pnpm install --frozen-lockfile --ignore-scripts; \
+      pnpm install --no-frozen-lockfile --ignore-scripts; \
     elif [ -f package-lock.json ]; then \
       npm ci --legacy-peer-deps --ignore-scripts; \
     else \
