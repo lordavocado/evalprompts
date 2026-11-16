@@ -45,10 +45,12 @@ AI logic lives in `app/actions.ts`. When modifying:
 
 ## Adding Features
 
-1. Create feature branch
-2. Make changes
-3. Test with `npm run build`
-4. Commit and describe what changed
+Work goes straight to `main`; no feature branches or pull requests.
+
+1. Make changes on `main`
+2. Test with `npm run build`
+3. Commit and describe what changed
+4. Rebase onto `origin/main` and push with `git push origin HEAD:main` (never force-push)
 
 ## Code Review Tips
 
